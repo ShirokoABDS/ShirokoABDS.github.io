@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ShirokoABDS的主页">
+    <title>ShirokoABDS的神秘主页</title>
+    <style>
+
+        /* 右侧时间卡片样式 */
+.time-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 20px;
+    color: #fff;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.time-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.time-icon {
+    font-size: 20px;
+}
+
+.time-display {
+    margin-bottom: 12px;
+}
+
+.time-date {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+}
+
+.time-clock {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #fff;
+}
+
+.time-weather {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+        @font-face {
+            font-family: 'ZQKNNY';
+            src: url('ZQKNNY-Medium-2.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+        /* 新增：强制头像容器样式，确保图片占满容器 */
+        .avatar, .mobile-avatar {
+            width: 120px; /* 根据你的页面调整，可自行修改 */
+            height: 120px;
+            border-radius: 50%; /* 圆形头像，不需要可删除 */
+            overflow: hidden;
+            position: relative;
+        }
+        .avatar-img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            display: block !important;
+        }
+        .avatar-placeholder {
+            display: none !important; /* 强制隐藏占位文字 */
+        }
+    </style>
+    <link rel="stylesheet" href="style/word.css">
+    <link rel="stylesheet" href="style/new.css">
+    <link rel="stylesheet" href="style/lan.css">
+    <link rel="stylesheet" href="style/icon.css">
+    <link rel="stylesheet" href="style/aoo.css">
+</head>
+<body>
+    <div class="bg">
+        <div class="pattern-bg">
+            <svg class="cube-svg" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <pattern id="cube" x="0" y="0" width="60" height="52" patternUnits="userSpaceOnUse">
+                        <path d="M30 0 L60 15 L60 41 L30 52 L0 41 L0 15 Z" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+                        <path d="M30 26 L60 15 M30 26 L0 15 M30 26 L30 52" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#cube)"/>
+            </svg>
+        </div>
+    </div>
+    <div class="bg-blur"></div>
+    <div class="container">
+        <!-- 左侧栏 -->
+        <aside class="sidebar">
+            <!-- 头像：直接嵌入图片，不再依赖JS动态生成 -->
+            <div class="avatar-card">
+                <div class="avatar">
+                    <img class="avatar-img" src="images/1.png" alt="头像" />
+                    <div class="avatar-placeholder">头像</div>
+                </div>
+            </div>
+
+            <!-- 联系方式图标 -->
+            <div class="glass-radio-group">
+                <input type="radio" name="icon" id="glass-mail" checked>
+                <label for="glass-mail" aria-label="邮件">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                </label>
+                <input type="radio" name="icon" id="glass-chat">
+                <label for="glass-chat" aria-label="微信">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg>
+                </label>
+                <input type="radio" name="icon" id="glass-link">
+                <label for="glass-link" aria-label="链接">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                </label>
+                <input type="radio" name="icon" id="glass-phone">
+                <label for="glass-phone" aria-label="手机">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                </label>
+                <div class="glass-glider"></div>
+            </div>
+
+            <!-- 导航列表 -->
+            <div class="radio-container" style="--total-radio: 4;">
+                <input type="radio" name="nav" id="nav-about" checked>
+                <label for="nav-about">简介</label>
+                <input type="radio" name="nav" id="nav-skills">
+                <label for="nav-skills">标签</label>
+                <input type="radio" name="nav" id="nav-projects">
+                <label for="nav-projects">神秘😎</label>
+                <input type="radio" name="nav" id="nav-contact">
+                <label for="nav-contact">联系</label>
+                <div class="glider-container">
+                    <div class="glider"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧主内容区 -->
+        <main class="main-content">
+            <!-- 移动端头像：同样直接嵌入图片 -->
+            <div class="mobile-avatar-card" id="mobileAvatarCard">
+                <div class="mobile-avatar">
+                    <img class="avatar-img" src="images/1.png" alt="头像" />
+                    <div class="avatar-placeholder">头像</div>
+                </div>
+            </div>
+
+            <!-- 标题 -->
+            <div class="title-card">
+                <h1 class="title-wrap">
+                    <span class="title-prefix">欢迎来到</span><span class="title">ShirokoABDS</span>的主页</span>
+                </h1>
+            </div>
+
+            <!-- 副标题 -->
+            <div class="subtitle-card">
+                <h2 class="subtitle-wrap">
+                    <span class="subtitle-prefix">Welcome everyone to my website</span><span class="subtitle-name">WT Server</span>
+                </h2>
+            </div>
+
+            <!-- 像素文字 -->
+            <div class="pixel-banner">
+                <div class="pixel-grid" id="pixelGrid"></div>
+            </div>
+
+            <!-- 个人简介 -->
+            <div class="intro-card" id="about">
+                <h3 class="section-title">个人简介</h3>
+                <p class="intro-text">
+                    一个热爱Minecraft的我的世界JAVA版服务器服主，同时也对图形化编程有所了解。在WT工作室承担服务器技术维护。
+                </p>
+            </div>
+
+            <!-- 技能展示 -->
+            <div class="skills-card" id="skills">
+                <h3 class="section-title">标签😋😎</h3>
+                <div class="skills-grid">
+                    <span class="skill-tag">HTML</span>
+                    <span class="skill-tag">Minecraft</span>
+                    <span class="skill-tag">logo design</span>
+                    <span class="skill-tag">Scarch</span>
+                    <span class="skill-tag">Turbowarp</span>
+                    <span class="skill-tag">Rednote</span>
+                    <span class="skill-tag">CCW</span>
+                    <span class="skill-tag">Github</span>
+                </div>
+            </div>
+
+            <!-- 项目展示 -->
+            <div class="projects-card" id="projects">
+                <h3 class="section-title">神秘😎😋</h3>
+                <div class="projects-grid">
+                    <div class="project-item">
+                        <div class="project-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        </div>
+                        <div class="project-title">服务器网站</div>
+                        <div class="project-desc">wtstu.mysxl.cn</div>
+                    </div>
+                    <div class="project-item">
+                        <div class="project-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        </div>
+                        <div class="project-title">bilibili</div>
+                        <div class="project-desc">UID: 3546580621724427</div>
+                    </div>
+                    <div class="project-item">
+                        <div class="project-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                        </div>
+                        <div class="project-title">小红书</div>
+                        <div class="project-desc">小红书号：26533733587</div>
+                    </div>
+                    <div class="project-item">
+                        <div class="project-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>
+                        </div>
+                        <div class="project-title">快手</div>
+                        <div class="project-desc">快手号：WT_Shiroko_Serika</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 联系方式 + 邮件回复（整合大模块） -->
+            <div class="comms-card" id="contact">
+                <div class="comms-header">
+                    <h3 class="section-title comms-title">联系我</h3>
+                    <p class="comms-subtitle">你可以直接查看联系方式，因为邮件回复不可用。</p>
+                </div>
+
+                <div class="comms-grid">
+                    <section class="comms-col comms-contact" aria-label="联系方式">
+                        <h4 class="comms-col-title">联系方式</h4>
+                        <div class="contact-info">
+                            <div class="contact-item">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                                Email: 2025465744@qq.com
+                            </div>
+                            <div class="contact-item">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg>
+                                QQ: 2025465744
+                            </div>
+                            <div class="contact-item">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+                                GitHub: github.com/ShirokoABDS
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="comms-divider" aria-hidden="true"></div>
+
+<!-- 右侧时间模块 -->
+<div class="time-card">
+    <div class="time-header">
+        <span class="time-icon">🕒</span>
+        <span class="time-title">当前时间</span>
+    </div>
+    <div class="time-display">
+        <div class="time-date" id="currentDate">2026年02月12日 星期四</div>
+        <div class="time-clock" id="currentTime">22:34:52</div>
+    </div>
+    <div class="time-weather" id="weatherInfo">天气数据获取失败</div>
+</div>
+
+                    <section class="comms-col comms-email" aria-label="邮件回复">
+                        <div class="email-header">
+                            <div class="email-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <rect x="2" y="4" width="20" height="16" rx="3" ry="3"/>
+                                    <polyline points="3 6 12 13 21 6" />
+                                </svg>
+                            </div>
+                            <div class="email-header-text">
+                                <h4 class="comms-col-title email-title">邮件回复(不可用)</h4>
+                                <p class="email-subtitle">你不信可以逝逝(●'◡'●)</p>
+                            </div>
+                        </div>
+                        <form class="email-form" id="emailReplyForm">
+                            <div class="email-row email-row-inline">
+                                <div class="email-field">
+                                    <label class="email-label" for="email-name">称呼</label>
+                                    <input class="email-input" type="text" id="email-name" name="name" placeholder="怎么称呼你？">
+                                </div>
+                                <div class="email-field">
+                                    <label class="email-label" for="email-from">邮箱</label>
+                                    <input class="email-input" type="email" id="email-from" name="from" placeholder="用于回复你的邮箱">
+                                </div>
+                            </div>
+                            <div class="email-row">
+                                <label class="email-label" for="email-message">留言内容</label>
+                                <textarea class="email-textarea" id="email-message" name="message" rows="3" placeholder="写下你想对我说的话..."></textarea>
+                            </div>
+                            <div class="email-actions">
+                                <button class="email-submit" type="submit">发送邮件</button>
+                                <p class="email-hint">将发送不了一点(❁´◡`❁)</p>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+<script>
+// 加载社交媒体滚动模块
+fetch('APP/index.html')
+    .then(r => r.text())
+    .then(html => {
+        const container = document.getElementById('appMarquee');
+        // 安全解析：移除 script 标签和事件属性，防止 XSS
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        doc.querySelectorAll('script').forEach(s => s.remove());
+        doc.querySelectorAll('*').forEach(el => {
+            [...el.attributes].forEach(attr => {
+                if (attr.name.toLowerCase().startsWith('on')) el.removeAttribute(attr.name);
+            });
+        });
+        container.innerHTML = doc.body.innerHTML;
+    })
+    .catch(() => {});
+</script>
+<script>
+function renderPixelBanner(text) {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const rows = 16, cols = 80;
+    const grid = document.getElementById('pixelGrid');
+    grid.innerHTML = '';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = cols;
+    canvas.height = rows;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, cols, rows);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'italic 300 14px "Microsoft YaHei", "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.letterSpacing = '6px';
+    const spacing = -5;
+    const totalWidth = ctx.measureText(text).width + spacing * (text.length - 1);
+    let x = (cols - totalWidth) / 2;
+    for (const ch of text) {
+        const w = ctx.measureText(ch).width;
+        ctx.fillText(ch, x + w / 2 + 3, rows / 2 + 1);
+        x += w + spacing;
+    }
+
+    const imageData = ctx.getImageData(0, 0, cols, rows);
+    grid.style.gridTemplateColumns = `repeat(${cols}, 6px)`;
+
+    const activeSquares = [];
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const sq = document.createElement('div');
+            sq.className = 'px-sq';
+            const idx = (r * cols + c) * 4;
+            if (imageData.data[idx] > 80) {
+                sq.classList.add('px-active');
+                activeSquares.push({ el: sq, c });
+            }
+            grid.appendChild(sq);
+        }
+    }
+
+    if (prefersReducedMotion) {
+        for (const item of activeSquares) {
+            item.el.style.background = 'hsl(200, 80%, 60%)';
+        }
+        return;
+    }
+
+    let animationId = null;
+    let offset = 0;
+    function animate() {
+        for (const item of activeSquares) {
+            const hue = ((item.c / cols) * 300 + offset) % 360;
+            item.el.style.background = `hsl(${hue}, 80%, 60%)`;
+        }
+        offset -= 0.4;
+        animationId = requestAnimationFrame(animate);
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                if (!animationId) animate();
+            } else {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+            }
+        });
+    }, { threshold: 0.1 });
+
+    observer.observe(grid.parentElement);
+}
+
+// 默认渲染
+renderPixelBanner('WT Studio');
+</script>
+<script>
+(function () {
+    // 项目图标 SVG 映射
+    const iconSVG = {
+        globe:   '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+        code:    '<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+        layout:  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>',
+        sparkle: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/></svg>',
+        server:  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
+        palette: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
+        terminal:'<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+        book:    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
+    };
+
+    function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+    // 自动跑路检测
+    fetch('admin/api.php?action=check_nuke')
+        .then(r => r.json())
+        .then(res => {
+            if (res.success && res.nuked) {
+                if (res.redirect_url) {
+                    window.location.href = res.redirect_url;
+                } else {
+                    document.body.innerHTML =
+                        '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#181c21;color:#fff;font-family:sans-serif;">' +
+                        '<div style="text-align:center;padding:40px;">' +
+                        '<div style="font-size:48px;margin-bottom:16px;">&#128075;</div>' +
+                        '<h1 style="font-size:28px;margin-bottom:8px;">再见！</h1>' +
+                        '<p style="color:rgba(255,255,255,0.5);font-size:14px;">网站已自动清空。</p>' +
+                        '</div></div>';
+                }
+                throw new Error('nuked');
+            }
+        })
+        .catch(() => {});
+
+    // 从后端加载动态内容
+    fetch('admin/api.php?action=get_content')
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success || !res.data) return;
+            const d = res.data;
+
+            // 背景设置（保留原有逻辑）
+            const bgMode = 'image'; 
+            const bgImage = 'images/2.jpeg'; 
+            const bgBlur = d.bg_blur ?? 6;
+            const bgOpacity = d.bg_opacity ?? 70;
+
+            // 应用模糊度
+            const bgBlurEl = document.querySelector('.bg-blur');
+            if (bgBlurEl) {
+                bgBlurEl.style.backdropFilter = 'blur(' + bgBlur + 'px)';
+                bgBlurEl.style.webkitBackdropFilter = 'blur(' + bgBlur + 'px)';
+            }
+
+            // 应用自定义背景图片
+            const bgEl = document.querySelector('.bg');
+            if (bgEl) {
+                bgEl.innerHTML = ''; 
+                bgEl.style.backgroundImage = 'url(' + bgImage + ')';
+                bgEl.style.backgroundSize = 'cover';
+                bgEl.style.backgroundPosition = 'center';
+                bgEl.style.backgroundRepeat = 'no-repeat';
+            }
+            // 遮罩层
+            if (bgBlurEl) {
+                bgBlurEl.style.background = 'rgba(24, 28, 33, ' + (bgOpacity / 100) + ')';
+            }
+
+            // 标题
+            const tp = document.querySelector('.title-prefix');
+            const tt = document.querySelector('.title');
+            if (tp && d.title_prefix) tp.textContent = d.title_prefix;
+            if (tt && d.title) tt.textContent = d.title;
+
+            // 副标题
+            const sp = document.querySelector('.subtitle-prefix');
+            const sn = document.querySelector('.subtitle-name');
+            if (sp && d.subtitle_prefix) sp.textContent = d.subtitle_prefix;
+            if (sn && d.subtitle_name) sn.textContent = d.subtitle_name;
+
+            // 渐变色
+            if (d.gradient_colors && d.gradient_colors.length >= 2) {
+                const gradColors = d.gradient_colors.join(', ');
+                const gradCSS = 'linear-gradient(135deg, ' + gradColors + ')';
+                const animate = d.gradient_animate !== false;
+                [tt, sn].forEach(el => {
+                    if (!el) return;
+                    el.style.background = gradCSS;
+                    el.style.webkitBackgroundClip = 'text';
+                    el.style.webkitTextFillColor = 'transparent';
+                    el.style.backgroundClip = 'text';
+                    if (animate) {
+                        el.style.backgroundSize = '200% 200%';
+                        el.style.animation = 'gradientText 4s ease infinite';
+                    } else {
+                        el.style.backgroundSize = '100% 100%';
+                        el.style.animation = 'none';
+                    }
+                });
+            }
+
+            // 像素文字
+            if (d.pixel_text) renderPixelBanner(d.pixel_text);
+
+            // 个人简介
+            const introEl = document.querySelector('.intro-text');
+            if (introEl && d.intro) introEl.textContent = d.intro;
+
+            // 技能
+            if (d.skills && d.skills.length > 0) {
+                const sg = document.querySelector('.skills-grid');
+                if (sg) {
+                    sg.innerHTML = d.skills.map(s => '<span class="skill-tag">' + esc(s) + '</span>').join('');
+                }
+            }
+
+            // 项目
+            if (d.projects && d.projects.length > 0) {
+                const pg = document.querySelector('.projects-grid');
+                if (pg) {
+                    pg.innerHTML = d.projects.map(p => {
+                        const icon = iconSVG[p.icon] || iconSVG.globe;
+                        return '<div class="project-item">' +
+                            '<div class="project-icon">' + icon + '</div>' +
+                            '<div class="project-title">' + esc(p.title) + '</div>' +
+                            '<div class="project-desc">' + esc(p.desc) + '</div>' +
+                            '</div>';
+                    }).join('');
+                }
+            }
+
+            // 联系方式
+            if (d.contact) {
+                const ci = document.querySelectorAll('.contact-item');
+                if (ci[0] && d.contact.email) ci[0].innerHTML = ci[0].querySelector('svg').outerHTML + ' Email: ' + esc(d.contact.email);
+                if (ci[1] && d.contact.wechat) ci[1].innerHTML = ci[1].querySelector('svg').outerHTML + ' WeChat: ' + esc(d.contact.wechat);
+                if (ci[2] && d.contact.github) ci[2].innerHTML = ci[2].querySelector('svg').outerHTML + ' GitHub: ' + esc(d.contact.github);
+            }
+        })
+        // 后端接口失败时仅兜底设置背景（头像已直接写在HTML里）
+        .catch(() => {
+            // 强制设置背景
+            const bgImage = 'images/2.jpeg';
+            const bgEl = document.querySelector('.bg');
+            if (bgEl) {
+                bgEl.innerHTML = '';
+                bgEl.style.backgroundImage = 'url(' + bgImage + ')';
+                bgEl.style.backgroundSize = 'cover';
+                bgEl.style.backgroundPosition = 'center';
+                bgEl.style.backgroundRepeat = 'no-repeat';
+            }
+            const bgBlurEl = document.querySelector('.bg-blur');
+            if (bgBlurEl) {
+                bgBlurEl.style.backdropFilter = 'blur(6px)';
+                bgBlurEl.style.webkitBackdropFilter = 'blur(6px)';
+                bgBlurEl.style.background = 'rgba(24, 28, 33, 0.7)';
+            }
+        });
+
+    // 邮件表单 — 提交到后端 API
+    const form = document.getElementById('emailReplyForm');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const name    = (form.querySelector('[name="name"]').value || '').trim();
+            const email   = (form.querySelector('[name="from"]').value || '').trim();
+            const message = (form.querySelector('[name="message"]').value || '').trim();
+
+            if (!name || !email || !message) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            const btn = form.querySelector('.email-submit');
+            const origText = btn.textContent;
+            btn.textContent = '发送中...';
+            btn.disabled = true;
+
+            fetch('admin/api.php?action=save_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, message })
+            })
+            .then(r => r.json())
+            .then(res => {
+                btn.textContent = origText;
+                btn.disabled = false;
+                if (res.success) {
+                    alert(res.message || '留言发送成功！');
+                    form.reset();
+                } else {
+                    alert(res.message || '发送失败，请重试');
+                }
+            })
+            .catch(() => {
+                btn.textContent = origText;
+                btn.disabled = false;
+                alert('API无法使用');
+            });
+        });
+    }
+
+    // 导航滚动 — 点击侧边栏导航项平滑滚动到对应区域
+    const navMap = {
+        'nav-about': 'about',
+        'nav-skills': 'skills',
+        'nav-projects': 'projects',
+        'nav-contact': 'contact'
+    };
+    document.querySelectorAll('.radio-container input[name="nav"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            const targetId = navMap[this.id];
+            const el = targetId && document.getElementById(targetId);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // 联系图标点击 — 滚动到联系区域
+    document.querySelectorAll('.glass-radio-group input').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var el = document.getElementById('contact');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // ========== 新增：时间/日期动态更新 + 天气兜底 ==========
+    // 格式化星期
+    function getWeekday(num) {
+        const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        return weekdays[num];
+    }
+
+    // 补零函数（确保数字是两位数）
+    function padZero(num) {
+        return num.toString().padStart(2, '0');
+    }
+
+    // 更新时间和日期
+    function updateDateTime() {
+        const now = new Date();
+        
+        // 格式化日期：YYYY年MM月DD日 星期X
+        const year = now.getFullYear();
+        const month = padZero(now.getMonth() + 1); // 月份从0开始
+        const day = padZero(now.getDate());
+        const weekday = getWeekday(now.getDay());
+        const dateText = `${year}年${month}月${day}日 ${weekday}`;
+        
+        // 格式化时间：HH:MM:SS
+        const hours = padZero(now.getHours());
+        const minutes = padZero(now.getMinutes());
+        const seconds = padZero(now.getSeconds());
+        const timeText = `${hours}:${minutes}:${seconds}`;
+        
+        // 更新DOM
+        document.getElementById('currentDate').textContent = dateText;
+        document.getElementById('currentTime').textContent = timeText;
+        
+        // 天气兜底（无API时显示友好提示）
+        document.getElementById('weatherInfo').textContent = 'Copyright © - 2026 ShirokoABDS & Made by ShirokoABDS';
+    }
+
+    // 初始化执行一次，然后每秒更新
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    // ========== 新增结束 ==========
+})();
+</script>
+</body>
+</html>
