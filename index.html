@@ -83,34 +83,6 @@
             0% { box-shadow: 0 0 0 0 var(--glow-color); }
             70% { box-shadow: 0 0 0 6px rgba(120, 180, 255, 0); }
             100% { box-shadow: 0 0 0 0 rgba(120, 180, 255, 0); }
-        }
-        /* 移除头像动画 */
-        @keyframes gradientText {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* 头像样式 - 移除所有动画效果 */
-        .avatar, .mobile-avatar {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            overflow: hidden;
-            position: relative;
-            /* 移除所有过渡和动画相关样式 */
-        }
-        /* 移除头像hover效果 */
-        .avatar-img {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            display: block !important;
-            /* 移除图片缩放过渡 */
-        }
-        .avatar-placeholder {
-            display: none !important;
-        }
 
         /* 时间卡片样式 */
         .time-card {
@@ -302,6 +274,11 @@
             transform: none;
             box-shadow: none;
         }
+                    // 背景设置
+                    const bgMode = 'image'; 
+                    const bgImage = 'images/2.jpeg'; 
+                    const bgBlur = d.bg_blur ?? 2;
+                    const bgOpacity = d.bg_opacity ?? 70;
 
         /* 卡片通用样式 */
         .intro-card, .skills-card, .projects-card, .comms-card, .title-card, .subtitle-card {
