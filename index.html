@@ -20,28 +20,30 @@
             padding: 0;
             min-height: 100vh;
             font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
-            background-color: #181c21; /* 兜底背景色，防止白屏 */
         }
 
-        .bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -2;
-        }
-        .bg-blur {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: rgba(24, 28, 33, 0.4); /* 兜底背景 */
-            backdrop-filter: blur(1px);
-            -webkit-backdrop-filter: blur(1px);
-        }
+.bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+}
+.bg-blur {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    /* 替换兜底背景为指定图片，保留模糊和半透明叠加 */
+    background: 
+        rgba(24, 28, 33, 0.4),  /* 半透明遮罩层，保留原有透明度效果 */
+        url("./images/2.jpeg") center center / cover no-repeat fixed;
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
+}
         .container {
             display: flex;
             max-width: 1200px;
@@ -374,7 +376,7 @@
 <body>
     <div class="bg">
         <div class="pattern-bg">
-            <svg class="cube-svg" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+
                 <defs>
                     <pattern id="cube" x="0" y="0" width="60" height="52" patternUnits="userSpaceOnUse">
                         <path d="M30 0 L60 15 L60 41 L30 52 L0 41 L0 15 Z" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
@@ -387,6 +389,7 @@
     </div>
     <div class="bg-blur"></div>
     <div class="container">
+        
         <!-- 左侧栏 -->
         <aside class="sidebar">
             <!-- 头像 -->
