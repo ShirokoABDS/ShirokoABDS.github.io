@@ -89,7 +89,6 @@
 
         /* 时间卡片样式 */
         .time-card {
-            background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.12);
@@ -156,7 +155,7 @@
         .px-sq {
             width: 6px;
             height: 6px;
-            background: rgba(255, 255, 255, 0.02);
+
             transition: background 0.1s ease;
         }
         .px-active {
@@ -193,14 +192,13 @@
         .skill-tag {
             padding: 6px 12px;
             border-radius: 20px;
-            background: rgba(255, 255, 255, 0.05);
             margin: 4px;
             display: inline-block;
             transition: all var(--animate-duration) var(--animate-ease);
         }
         .skill-tag:hover {
             transform: scale(1.08);
-            background: rgba(120, 180, 255, 0.2);
+
             color: #e0f0ff;
             box-shadow: 0 2px 8px rgba(120, 180, 255, 0.15);
         }
@@ -244,7 +242,7 @@
         .email-input, .email-textarea {
             transition: all var(--animate-duration) var(--animate-ease);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.05);
+
             color: #fff;
             padding: 8px 12px;
             border-radius: 8px;
@@ -831,6 +829,7 @@
                         bgBlurEl.style.backdropFilter = 'blur(1px)';
                         bgBlurEl.style.webkitBackdropFilter = 'blur(1px)';
                         bgBlurEl.style.background = 'rgba(24, 28, 33, 0.4)';
+                        const bgImage = 'images/2.jpg';
                     }
                 });
                 // 导航滚动
