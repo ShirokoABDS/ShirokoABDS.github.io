@@ -173,48 +173,54 @@ if (!empty($admin['ad_tamper_ts'])) {
                         </div>
                     </div>
 
-                    <!-- 背景设置 -->
-                    <div class="glass-card" style="margin-top: 14px;">
-                        <h4 style="font-size:15px;font-weight:600;margin-bottom:14px;">背景设置</h4>
+<!-- 背景设置 -->
+<div class="glass-card" style="margin-top: 14px;">
+    <h4 style="font-size:15px;font-weight:600;margin-bottom:14px;">背景设置</h4>
 
-                        <!-- 背景模式选择 -->
-                        <div class="form-group">
-                            <label>背景模式</label>
-                            <div class="bg-mode-selector" id="bgModeSelector">
-                                <label class="bg-mode-option active" data-mode="default">
-                                    <div class="bg-mode-preview bg-mode-default-preview"></div>
-                                    <span>默认纹理</span>
-                                </label>
-                                <label class="bg-mode-option" data-mode="image">
-                                    <div class="bg-mode-preview bg-mode-image-preview" id="bgModeImageThumb"></div>
-                                    <span>自定义图片</span>
-                                </label>
-                            </div>
-                        </div>
+    <!-- 背景模式选择 -->
+    <div class="form-group">
+        <label>背景模式</label>
+        <div class="bg-mode-selector" id="bgModeSelector">
+            <!-- 隐藏默认纹理选项 -->
+            <label class="bg-mode-option" data-mode="default" style="display: none;">
+                <div class="bg-mode-preview bg-mode-default-preview"></div>
+                <span>默认纹理</span>
+            </label>
+            <!-- 强制激活自定义图片选项 -->
+            <label class="bg-mode-option active" data-mode="image">
+                <div class="bg-mode-preview bg-mode-image-preview" id="bgModeImageThumb" style="background-image: url('./images/2.jpeg');background-size: cover;background-position: center;"></div>
+                <span>自定义图片</span>
+            </label>
+        </div>
+    </div>
 
-                        <!-- 背景图片上传（仅图片模式显示） -->
-                        <div class="bg-image-section" id="bgImageSection" style="display:none;">
-                            <div class="form-group">
-                                <label>背景图片</label>
-                                <div class="bg-upload-row">
-                                    <div class="bg-thumb" id="bgThumb">
-                                        <div class="bg-thumb-empty" id="bgThumbEmpty">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                        </div>
-                                        <img id="bgThumbImg" class="bg-thumb-img" src="" alt="背景预览" style="display:none">
-                                    </div>
-                                    <div class="bg-upload-actions">
-                                        <label class="btn btn-primary btn-sm" for="bgFile">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                            上传图片
-                                        </label>
-                                        <button type="button" class="btn btn-outline btn-sm" id="deleteBgBtn" style="display:none">删除</button>
-                                        <input type="file" id="bgFile" accept="image/*" style="display:none">
-                                    </div>
-                                </div>
-                                <span class="form-hint">支持 JPG/PNG/GIF/WebP，不超过 10MB</span>
-                            </div>
-                        </div>
+    <!-- 背景图片上传（强制显示+默认展示指定图片） -->
+    <div class="bg-image-section" id="bgImageSection" style="display:block;">
+        <div class="form-group">
+            <label>背景图片</label>
+            <div class="bg-upload-row">
+                <div class="bg-thumb" id="bgThumb">
+                    <!-- 隐藏空状态，直接显示指定图片 -->
+                    <div class="bg-thumb-empty" id="bgThumbEmpty" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <!-- 强制设置图片路径为images/2.jpeg并显示 -->
+                    <img id="bgThumbImg" class="bg-thumb-img" src="./images/2.jpeg" alt="背景预览" style="display:block;width:100%;height:100%;object-fit:cover;">
+                </div>
+                <div class="bg-upload-actions">
+                    <!-- 隐藏上传按钮（可选，若不需要上传可隐藏） -->
+                    <label class="btn btn-primary btn-sm" for="bgFile" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        上传图片
+                    </label>
+                    <!-- 隐藏删除按钮（强制显示指定图片，不允许删除） -->
+                    <button type="button" class="btn btn-outline btn-sm" id="deleteBgBtn" style="display:none">删除</button>
+                    <input type="file" id="bgFile" accept="image/*" style="display:none">
+                </div>
+            </div>
+            <span class="form-hint">支持 JPG/PNG/GIF/WebP，不超过 10MB</span>
+        </div>
+    </div>
 
                         <!-- 模糊度和暗度滑块 -->
                         <div class="form-grid">
