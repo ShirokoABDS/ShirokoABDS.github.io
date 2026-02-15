@@ -275,6 +275,68 @@
             transform: none;
             box-shadow: none;
         }
+                /* 存储站按钮样式 */
+/* 定义动画变量（确保动效生效） */
+:root {
+    --animate-duration: 0.3s;
+    --animate-ease: ease-in-out;
+}
+
+.storage-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 24px;
+    /* 核心：全透明背景 + 磨砂模糊 + 高光渐变叠加 */
+    background: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%),
+        transparent;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px); /* 兼容Chrome/Safari */
+    /* 文字颜色加深，提升可读性 */
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* 文字加轻微阴影，更清晰 */
+    text-decoration: none;
+    border-radius: 20px;
+    font-weight: 500;
+    transition: all var(--animate-duration) var(--animate-ease);
+    /* 磨砂阴影 + 高光轮廓 */
+    box-shadow: 
+        0 4px 20px rgba(120, 180, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2); /* 内高光，增强轮廓 */
+    /* 带高光的半透边框 */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 新增高光光效伪元素，模拟玻璃反光 */
+.storage-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transition: left var(--animate-duration) var(--animate-ease);
+}
+
+.storage-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    /* 悬浮时增强高光和阴影 */
+    box-shadow: 
+        0 6px 24px rgba(120, 180, 255, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.35);
+    background: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.1) 100%),
+        transparent;
+}
+
+/* 悬浮时高光划过效果 */
+.storage-btn:hover::before {
+    left: 100%;
+}
 
 
         /* 卡片通用样式 */
@@ -290,8 +352,8 @@
             color: #fff;
         }
         .intro-card:hover, .skills-card:hover, .projects-card:hover, .comms-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1);
         }
 
         /* 字体样式 */
@@ -405,7 +467,11 @@
             <div class="intro-card" id="about">
                 <h3 class="section-title">个人简介</h3>
                 <p class="intro-text">
-                    一个热爱Minecraft的我的世界JAVA版服务器服主，同时也对图形化编程有所了解。在WT工作室承担服务器技术维护。
+                    一个热爱Minecraft的JAVA版服务器服主，对图形化编程比较熟悉。在WT承担服务器技术维护。
+                      <p class="intro-text">
+                   服务器版本：原版JAVA 1.21.8＆基岩互通 | 服务器地址：zdy.wtstu.us.ci
+                     <p class="intro-text">
+                    服务器介绍：一个由玩家们用方块和热爱建起的服务器，开服至今从未盈利，只希望服务器的人能多一点、玩家们玩得开心。
                 </p>
             </div>
 
@@ -467,7 +533,7 @@
             <div class="comms-card" id="contact">
                 <div class="comms-header">
                     <h3 class="section-title comms-title">联系我</h3>
-                    <p class="comms-subtitle">你可以直接查看联系方式，因为邮件回复不可用。</p>
+                    <p class="comms-subtitle">你可以直接查看联系方式</p>
                 </div>
 
                 <div class="comms-grid">
@@ -501,40 +567,14 @@
                             <div class="time-date" id="currentDate">2026年02月12日 星期四</div>
                             <div class="time-clock" id="currentTime">22:34:52</div>
                         </div>
-                        <div class="time-weather" id="weatherInfo">Technoblade 永不消亡！</div>
+                        <div class="time-weather" id="weatherInfo">“Technoblade Never Dies”</div>
                     </div>
-
-                    <section class="comms-col comms-email" aria-label="邮件回复">
-                        <div class="email-header">
-                            <div class="email-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <rect x="2" y="4" width="20" height="16" rx="3" ry="3"/>
-                                    <polyline points="3 6 12 13 21 6" />
-                                </svg>
-                            </div>
-                            <div class="email-header-text">
-                                <h4 class="comms-col-title email-title">邮件回复(不可用)</h4>
-                                <p class="email-subtitle">你不信可以逝逝(●'◡'●)</p>
-                            </div>
                         </div>
-                        <form class="email-form" id="emailReplyForm">
-                            <div class="email-row email-row-inline">
-                                <div class="email-field">
-                                    <label class="email-label" for="email-name">称呼</label>
-                                    <input class="email-input" type="text" id="email-name" name="name" placeholder="怎么称呼你？">
-                                </div>
-                                <div class="email-field">
-                                    <label class="email-label" for="email-from">邮箱</label>
-                                    <input class="email-input" type="email" id="email-from" name="from" placeholder="用于回复你的邮箱">
-                                </div>
-                            </div>
-                            <div class="email-row">
-                                <label class="email-label" for="email-message">留言内容</label>
-                                <textarea class="email-textarea" id="email-message" name="message" rows="3" placeholder="写下你想对我说的话..."></textarea>
-                            </div>
-                            <div class="email-actions">
-                                <button class="email-submit" type="submit">发送邮件</button>
-                                <p class="email-hint">将发送不了一点(❁´◡`❁)</p>
+                        <!-- 新增存储站跳转按钮 -->
+                        <a href="https://www.123865.com/s/KM70jv-7sGr3" target="_blank" rel="noopener noreferrer" class="storage-btn">
+                            访问存储站
+                        </a>
+                                </svg>
                             </div>
                         </form>
                     </section>
@@ -790,51 +830,7 @@
                         bgBlurEl.style.background = 'rgba(24, 28, 33, 0.4)';
                     }
                 });
-
-            // 邮件表单提交
-            const form = document.getElementById('emailReplyForm');
-            if (form) {
-                form.addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    const name    = (form.querySelector('[name="name"]').value || '').trim();
-                    const email   = (form.querySelector('[name="from"]').value || '').trim();
-                    const message = (form.querySelector('[name="message"]').value || '').trim();
-
-                    if (!name || !email || !message) {
-                        alert('请填写完整信息');
-                        return;
-                    }
-
-                    const btn = form.querySelector('.email-submit');
-                    const origText = btn.textContent;
-                    btn.textContent = '发送中...';
-                    btn.disabled = true;
-
-                    fetch('admin/api.php?action=save_message', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, email, message })
-                    })
-                    .then(r => r.json().catch(() => ({ success: false })))
-                    .then(res => {
-                        btn.textContent = origText;
-                        btn.disabled = false;
-                        if (res.success) {
-                            alert(res.message || '留言发送成功！');
-                            form.reset();
-                        } else {
-                            alert(res.message || '发送失败，请重试');
-                        }
-                    })
-                    .catch(() => {
-                        btn.textContent = origText;
-                        btn.disabled = false;
-                        alert('API无法使用');
-                    });
-                });
-            }
-
-            // 导航滚动
+                // 导航滚动
             const navMap = {
                 'nav-about': 'about',
                 'nav-skills': 'skills',
@@ -891,39 +887,6 @@
                     lastTime = timeText;
                 }
             }
-
-            // 获取每日一言
-            function getHitokoto() {
-                fetch('https://api.baiwumm.com/api/hitokoto')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP错误，状态码：${response.status}`);
-                        }
-                        return response.text();
-                    })
-                    .then(text => {
-                        const hitokotoEl = document.getElementById('weatherInfo');
-                        if (hitokotoEl) {
-                            hitokotoEl.style.opacity = 0;
-                            setTimeout(() => {
-                                hitokotoEl.textContent = text;
-                                hitokotoEl.style.opacity = 1;
-                            }, 100);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('获取每日一言失败：', error);
-                        const hitokotoEl = document.getElementById('weatherInfo');
-                        if (hitokotoEl) {
-                            hitokotoEl.style.opacity = 0;
-                            setTimeout(() => {
-                                hitokotoEl.textContent = 'Technoblade Never Dies!';
-                                hitokotoEl.style.opacity = 1;
-                            }, 100);
-                        }
-                    });
-            }
-
             // 初始化
             updateDateTime();
             setInterval(updateDateTime, 1000);
