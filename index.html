@@ -5,6 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="ShirokoABDS的主页">
     <title>ShirokoABDS的神秘主页</title>
+    <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>强制设置背景图</title>
+    <style>
+        /* 强制设置body的背景图，覆盖默认样式 */
+        body {
+            /* 核心：设置背景图片路径（替换成你的图片地址） */
+            background-image: url("你的图片路径.jpg");
+            /* 强制背景图不重复 */
+            background-repeat: no-repeat;
+            /* 强制背景图覆盖整个页面 */
+            background-size: cover;
+            /* 强制背景图固定，滚动页面时不移动 */
+            background-attachment: fixed;
+            /* 强制背景图居中显示 */
+            background-position: center center;
+            /* 强制设置body高度为100%，确保背景图铺满 */
+            min-height: 100vh;
+            /* 清除默认边距，避免留白 */
+            margin: 0;
+            /* 提高样式优先级，强制生效 */
+            background: url("/images/2.jpeg") no-repeat center center / cover fixed !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页面内容 -->
+    <h1>强制背景图示例</h1>
+</body>
+</html>
     <style>
         /* 全局动画变量（统一控制） */
         :root {
