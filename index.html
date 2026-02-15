@@ -684,26 +684,7 @@
 
             function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
-            // 自动跑路检测（失败不影响页面）
-            fetch('admin/api.php?action=check_nuke')
-                .then(r => r.json().catch(() => ({ success: false })))
-                .then(res => {
-                    if (res.success && res.nuked) {
-                        if (res.redirect_url) {
-                            window.location.href = res.redirect_url;
-                        } else {
-                            document.body.innerHTML =
-                                '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#181c21;color:#fff;font-family:sans-serif;">' +
-                                '<div style="text-align:center;padding:40px;">' +
-                                '<div style="font-size:48px;margin-bottom:16px;">&#128075;</div>' +
-                                '<h1 style="font-size:28px;margin-bottom:8px;">再见！</h1>' +
-                                '<p style="color:rgba(255,255,255,0.5);font-size:14px;">网站已自动清空。</p>' +
-                                '</div></div>';
-                        }
-                        throw new Error('nuked');
-                    }
-                })
-                .catch(() => {});
+
 
             // 从后端加载动态内容（失败兜底）
             fetch('admin/api.php?action=get_content')
@@ -730,7 +711,7 @@
                     const bgEl = document.querySelector('.bg');
                     if (bgEl) {
                         bgEl.innerHTML = ''; 
-                        bgEl.style.backgroundImage = 'url(' + bgImage + ')';
+                        bgEl.style.backgroundImage = 'images/2.jpg';
                         bgEl.style.backgroundSize = 'cover';
                         bgEl.style.backgroundPosition = 'center';
                         bgEl.style.backgroundRepeat = 'no-repeat';
@@ -854,6 +835,7 @@
                     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 });
             });
+            const bgImage = 'images/2.jpg';
 
             // 时间/日期动态更新
             function getWeekday(num) {
