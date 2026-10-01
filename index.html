@@ -156,7 +156,7 @@
 </head>
 <body>
 
-<!-- ==================== 停止维护提示弹窗 ==================== -->
+<!-- ==================== 停止维护提示弹窗（放在最前，确保最先渲染） ==================== -->
 <div class="mnt-overlay" id="mntOverlay" role="dialog" aria-modal="true" aria-labelledby="mntTitle">
   <div class="mnt-box">
     <div class="mnt-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -177,6 +177,7 @@
   </div>
 </div>
 
+<!-- 弹窗脚本：紧跟弹窗之后，立即执行 -->
 <script>
 (function () {
   var NEW_SITE = 'https://shabds.fucku.top';
@@ -184,21 +185,13 @@
   var stayBtn  = document.getElementById('mntStay');
   var goBtn    = document.getElementById('mntGo');
 
-  function showModal() {
+  // 立即显示弹窗（requestAnimationFrame 保证过渡动画生效）
+  requestAnimationFrame(function () {
     overlay.classList.add('show');
-  }
+  });
 
   function closeModal() {
     overlay.classList.remove('show');
-  }
-
-  // 页面加载完成后弹出
-  if (document.readyState === 'complete') {
-    setTimeout(showModal, 300);
-  } else {
-    window.addEventListener('load', function () {
-      setTimeout(showModal, 300);
-    });
   }
 
   // 留在本网站
