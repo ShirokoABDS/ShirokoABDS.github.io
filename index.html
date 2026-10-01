@@ -7,9 +7,221 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100;300;400;700;900&family=Zen+Maru+Gothic:wght@400;700;900&family=Space+Grotesk:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<!-- ==================== 停止维护提示弹窗 样式 ==================== -->
+<style>
+  .mnt-overlay{
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(4, 7, 18, .72);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .35s ease, visibility .35s ease;
+  }
+  .mnt-overlay.show{
+    opacity: 1;
+    visibility: visible;
+  }
+  .mnt-box{
+    position: relative;
+    overflow: hidden;
+    width: min(460px, 100%);
+    padding: 32px 28px 26px;
+    border-radius: 20px;
+    text-align: center;
+    font-family: 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+    color: #e8eefc;
+    background: linear-gradient(160deg, rgba(22,29,52,.97), rgba(11,15,30,.99));
+    border: 1px solid rgba(79,172,254,.28);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.04),
+      0 24px 60px rgba(0,0,0,.65),
+      0 0 70px rgba(79,172,254,.12);
+    transform: translateY(18px) scale(.96);
+    transition: transform .4s cubic-bezier(.2,.9,.3,1.3);
+  }
+  .mnt-overlay.show .mnt-box{
+    transform: translateY(0) scale(1);
+  }
+  /* 顶部流光条 */
+  .mnt-box::before{
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4facfe, #00f2fe, #f093fb, #4facfe);
+    background-size: 200% 100%;
+    animation: mntFlow 4s linear infinite;
+  }
+  @keyframes mntFlow{
+    0%{ background-position: 0% 50%; }
+    100%{ background-position: 200% 50%; }
+  }
+  .mnt-icon{
+    width: 64px; height: 64px;
+    margin: 0 auto 18px;
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    color: #4facfe;
+    background: linear-gradient(135deg, rgba(79,172,254,.18), rgba(240,147,251,.14));
+    border: 1px solid rgba(79,172,254,.3);
+    animation: mntPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes mntPulse{
+    0%,100%{ box-shadow: 0 0 22px rgba(79,172,254,.18); }
+    50%    { box-shadow: 0 0 42px rgba(79,172,254,.38); }
+  }
+  .mnt-title{
+    margin: 0 0 10px;
+    font-size: 21px;
+    font-weight: 900;
+    letter-spacing: .5px;
+    background: linear-gradient(135deg, #ffffff, #a9d6ff 60%, #f093fb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: #fff;
+  }
+  .mnt-desc{
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.85;
+    color: #a9b6cf;
+  }
+  .mnt-url{
+    display: inline-block;
+    margin-top: 14px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-family: 'Space Grotesk', 'Noto Sans SC', monospace;
+    color: #7fd8ff;
+    background: rgba(0,242,254,.08);
+    border: 1px solid rgba(0,242,254,.22);
+    word-break: break-all;
+  }
+  .mnt-actions{
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .mnt-btn{
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .25s ease;
+    white-space: nowrap;
+  }
+  .mnt-btn.ghost{
+    background: rgba(255,255,255,.05);
+    border-color: rgba(255,255,255,.14);
+    color: #c7d2e6;
+  }
+  .mnt-btn.ghost:hover{
+    background: rgba(255,255,255,.11);
+    color: #fff;
+    border-color: rgba(255,255,255,.28);
+  }
+  .mnt-btn.primary{
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: #04101f;
+    box-shadow: 0 8px 24px rgba(79,172,254,.35);
+  }
+  .mnt-btn.primary:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0,242,254,.5);
+  }
+  @media (max-width: 420px){
+    .mnt-actions{ flex-direction: column; }
+    .mnt-box{ padding: 26px 20px 22px; }
+  }
+</style>
 </head>
 <body>
-  <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
+
+<!-- ==================== 停止维护提示弹窗 ==================== -->
+<div class="mnt-overlay" id="mntOverlay" role="dialog" aria-modal="true" aria-labelledby="mntTitle">
+  <div class="mnt-box">
+    <div class="mnt-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3 class="mnt-title" id="mntTitle">本网站已停止维护</h3>
+    <p class="mnt-desc">
+      感谢你一直以来的访问 ♥<br>
+      本站内容已不再更新，请前往全新站点获取最新内容。
+    </p>
+    <span class="mnt-url">https://shabds.fucku.top</span>
+    <div class="mnt-actions">
+      <button type="button" class="mnt-btn ghost" id="mntStay">
+        <i class="fa-solid fa-house"></i> 留在本网站
+      </button>
+      <button type="button" class="mnt-btn primary" id="mntGo">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> 前往新网站
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var NEW_SITE = 'https://shabds.fucku.top';
+  var overlay  = document.getElementById('mntOverlay');
+  var stayBtn  = document.getElementById('mntStay');
+  var goBtn    = document.getElementById('mntGo');
+
+  function showModal() {
+    overlay.classList.add('show');
+  }
+
+  function closeModal() {
+    overlay.classList.remove('show');
+  }
+
+  // 页面加载完成后弹出
+  if (document.readyState === 'complete') {
+    setTimeout(showModal, 300);
+  } else {
+    window.addEventListener('load', function () {
+      setTimeout(showModal, 300);
+    });
+  }
+
+  // 留在本网站
+  stayBtn.addEventListener('click', closeModal);
+
+  // 前往新网站
+  goBtn.addEventListener('click', function () {
+    window.location.href = NEW_SITE;
+  });
+
+  // 点击遮罩关闭
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) closeModal();
+  });
+
+  // 按 Esc 关闭
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay.classList.contains('show')) closeModal();
+  });
+})();
+</script>
+
+<div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
   <iframe 
     frameborder="0" 
     border="0" 
