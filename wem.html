@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>world.execute(me); — particle UI</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800&family=IBM+Plex+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+#stage{position:fixed;inset:0;font-family:"IBM Plex Mono","Noto Sans SC",monospace;will-change:transform,filter}
+#stage.inv{filter:invert(1) hue-rotate(180deg)}
+#cv{position:absolute;inset:0;width:100%;height:100%}
+#vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 46%,transparent 45%,rgba(0,0,0,.45) 85%,rgba(0,0,0,.85) 100%)}
+#lyr{position:absolute;left:22px;bottom:96px;max-width:52%;color:#dfe9f5;font-size:clamp(13px,1.6vw,18px);line-height:1.4;z-index:6;pointer-events:none;text-shadow:0 0 12px rgba(110,200,255,.25),0 2px 3px #000}
+#lyr.red{text-shadow:0 0 14px rgba(255,60,70,.6),0 2px 3px #000}
+#lyr .gl{animation:gl .26s steps(2) 2}
+@keyframes gl{25%{transform:translate(3px,-2px);opacity:.4}60%{transform:translate(-3px,1px)}}
+#boot{position:absolute;inset:0;background:#000;z-index:20;display:flex;flex-direction:column;gap:26px;align-items:center;justify-content:center;color:#8fa6c2}
+#boot h1{font-family:Unbounded;font-weight:800;font-size:clamp(20px,4.2vw,48px);color:#e9f2ff;margin:0}
+#boot h1 span{color:#ff3b4a}
+#bmsg{font-size:12px;letter-spacing:.25em;margin:0;min-height:18px}
+#bmsg.cd{font-family:Unbounded;font-size:clamp(40px,8vw,96px);color:#6ecbff;letter-spacing:0;
+ text-shadow:0 0 40px rgba(110,203,255,.6);animation:cdp .9s ease-out infinite}
+@keyframes cdp{0%{transform:scale(1.25);opacity:1}100%{transform:scale(.92);opacity:.55}}
+#bbtns{display:flex;gap:16px}
+#bbtns button{font-family:"IBM Plex Mono",monospace;font-size:14px;letter-spacing:.12em;cursor:pointer;
+ background:rgba(110,203,255,.08);color:#cfe6ff;border:1px solid rgba(110,203,255,.45);
+ padding:12px 26px;border-radius:6px;transition:.2s}
+#bbtns button:hover{background:rgba(110,203,255,.22);box-shadow:0 0 24px rgba(110,203,255,.25)}
+#bbtns button.sec{opacity:.55;font-size:12px;padding:10px 18px}
+#boot.drag{outline:2px dashed rgba(110,203,255,.6);outline-offset:-18px}
+#boot.drop{color:#8fa6c2}
+</style>
+</head>
+<body>
+<div id="stage">
+<canvas id="cv"></canvas><div id="vig"></div>
+<div id="lyr"></div>
+<div id="boot">
+ <h1>world.execute<span>(me);</span></h1>
+ <p id="bmsg">SELECT AUDIO FILE · 选择音频文件（也可拖入窗口）</p>
+ <div id="bbtns">
+  <button id="pick">▶ 选择音频</button>
+  <button id="skip" class="sec">无音频直接播放</button>
+ </div>
+ <input type="file" id="file" accept="audio/*" hidden>
+</div>
+</div>
+<script>
+'use strict';
+const TAU=Math.PI*2,R=Math.random,rnd=(a,b)=>a+R()*(b-a),clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t;
+const pick=a=>a[R()*a.length|0];
+function gauss(){let u=0;while(!u)u=R();return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*R());}
+const GLY='01<>{}[]();/\\|#$%&@*+=~?:·_';
+const C={blue:'#6ecbff',blue2:'#bfdcff',deep:'#2d5f8a',white:'#f2f6ff',gold:'#ffb347',gold2:'#ffd27f',red:'#ff2b3a',red2:'#ff6b74',grey:'#55677d',dim:'#3a4452',grn:'#69e6a5'};
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const stage=document.getElementById('stage');
+let W=0,H=0,S=1,DPR=1;
+function rs(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;S=Math.min(W,H)/1000;cv.width=W*DPR;cv.height=H*DPR;}
+addEventListener('resize',rs);rs();
+const CN=s=>`${s}px "Noto Sans SC","IBM Plex Mono",monospace`;
+const MO=(s,w)=>`${w||400} ${s}px "IBM Plex Mono",monospace`;
+const UB=s=>`800 ${s}px Unbounded,monospace`;
+
+/* ============ 粒子池 ============ */
+const P_N=4200,P=[];
+for(let i=0;i<P_N;i++)P.push({x:R()*W,y:R()*H,vx:0,vy:0,tx:0,ty:0,m:0,d:0,c:C.blue,sz:1.4+R()*1.4,sd:R()});
+let BIND=null;
+const tint=(a,b)=>{const r=R();return r<.72?a:r<.86?C.white:b;};
+function retarget(pts,a,b){BIND=null;for(let i=0;i<P_N;i++){const p=P[i];
+ if(i<pts.length){p.m=1;p.d=R()*.3;p.tx=pts[i][0];p.ty=pts[i][1];p.c=tint(a,b);}else{p.m=0;p.d=0;}}}
+function bindPts(n,fn,a,b){BIND={n:Math.min(n,P_N),fn};for(let i=0;i<BIND.n;i++){const p=P[i];p.m=1;p.d=0;p.c=tint(a,b);}}
+function explode(){BIND=null;for(const p of P){const a=R()*TAU,v=200+R()*900;p.vx+=Math.cos(a)*v;p.vy+=Math.sin(a)*v;p.m=0;p.d=.08+R()*.3;}}
+function killAll(){BIND=null;for(const p of P){p.m=0;p.vx*=.3;p.vy*=.3;}}
+function updP(dt){if(BIND)for(let i=0;i<BIND.n;i++){const q=BIND.fn(i);if(q){P[i].tx=q[0];P[i].ty=q[1];}}
+ for(const p of P){if(p.m===1){if(p.d>0){p.d-=dt;continue;}
+  p.vx+=(p.tx-p.x)*26*dt;p.vy+=(p.ty-p.y)*26*dt;const e=Math.exp(-6.2*dt);p.vx*=e;p.vy*=e;
+  p.vx+=(R()-.5)*12*dt;p.vy+=(R()-.5)*12*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;}
+ else{p.x+=p.vx*dt;p.y+=p.vy*dt;const e=Math.exp(-1.2*dt);p.vx*=e;p.vy*=e;
+  p.vx+=(R()-.5)*26*dt;p.vy+=(R()-.5)*26*dt;
+  if(p.x<-20)p.x=W+20;if(p.x>W+20)p.x=-20;if(p.y<-20)p.y=H+20;if(p.y>H+20)p.y=-20;}}}
+function drawP(t){ctx.save();ctx.globalCompositeOperation='lighter';
+ for(const p of P){ctx.globalAlpha=(p.m===1?.95:.22)*(.6+.4*Math.sin(t*7+p.sd*40));
+  ctx.fillStyle=p.c;const s=p.sz*S+1;ctx.fillRect(p.x-s/2,p.y-s/2,s,s);}
+ ctx.restore();ctx.globalAlpha=1;}
+
+/* ============ 字符马赛克大字 ============ */
+const mosC=document.createElement('canvas'),mosG=mosC.getContext('2d');
+let MOS=null,DEB=[];
+function newMosaic(str,o={}){const color=o.color||C.red,frac=o.frac||.66,fontPx=170;
+ mosG.font=UB(fontPx);const mw=mosG.measureText(str).width;
+ const k=Math.min(W*frac/mw,H*.42/fontPx);
+ const w=Math.ceil(mw*k)+14,h=Math.ceil(fontPx*k*1.25)+14;
+ const c=document.createElement('canvas');c.width=w;c.height=h;
+ const tg=document.createElement('canvas');tg.width=w;tg.height=h;const g2=tg.getContext('2d');
+ g2.font=UB(fontPx*k);g2.textBaseline='middle';g2.fillStyle='#fff';g2.fillText(str,7,h/2);
+ const id=g2.getImageData(0,0,w,h).data,cell=o.cell||Math.max(5,Math.round(9*S+3)),cells=[];
+ for(let y=7;y<h-7;y+=cell)for(let x=7;x<w-7;x+=cell)
+  if(id[((y|0)*w+(x|0))*4+3]>110)cells.push({x,y,ch:pick(o.glyphs||GLY),rt:R()*1.1,done:false});
+ return{c,g:c.getContext('2d'),cells,w,h,color,glyphs:o.glyphs||GLY,cell,t0:null,dx:0,dy:0};}
+function tickMosaic(m,r){if(m.t0===null)m.t0=r;const g=m.g;
+ g.font=MO(m.cell+1,700);g.textBaseline='middle';
+ for(const c of m.cells){
+  if(!c.done){if(r>=m.t0+c.rt){c.done=true;g.fillStyle=m.color;g.fillText(c.ch,c.x,c.y);}}
+  else if(R()<.003){g.fillStyle='rgba(4,7,12,.95)';g.fillRect(c.x-m.cell,c.y-m.cell,m.cell*2,m.cell*2);
+   c.ch=pick(m.glyphs);g.fillStyle=m.color;g.fillText(c.ch,c.x,c.y);}}}
+function drawMosaic(m,x,y,a){m.dx=x;m.dy=y;ctx.globalAlpha=a??1;ctx.drawImage(m.c,x-m.w/2,y-m.h/2);ctx.globalAlpha=1;}
+function burstMosaic(){if(!MOS)return;for(const c of MOS.cells){if(!c.done)continue;
+ DEB.push({x:MOS.dx-MOS.w/2+c.x,y:MOS.dy-MOS.h/2+c.y,vx:rnd(-500,500),vy:rnd(-560,240),ch:c.ch,c:MOS.color,life:1});}
+ if(DEB.length>2400)DEB.splice(0,DEB.length-2400);MOS=null;}
+function updDeb(dt){for(let i=DEB.length-1;i>=0;i--){const d=DEB[i];d.life-=dt*.8;
+ if(d.life<=0){DEB.splice(i,1);continue;}d.vy+=500*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.vx*=.99;
+ ctx.globalAlpha=d.life*.9;ctx.fillStyle=d.c;ctx.font=MO(8*S+2);ctx.fillText(d.ch,d.x,d.y);}
+ ctx.globalAlpha=1;}
+
+/* ============ 后期 ============ */
+let flV=0,flC='255,255,255',glV=0;
+const flash=(v,c)=>{flV=Math.max(flV,v);flC=c||'255,255,255';};
+const glitch=v=>{glV=Math.max(glV,v);};
+const nz=document.createElement('canvas');nz.width=nz.height=160;
+{const n=nz.getContext('2d'),d=n.createImageData(160,160);
+ for(let i=0;i<d.data.length;i+=4){const v=R()*255|0;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}n.putImageData(d,0,0);}
+let nzP=null;
+function postFX(dt){if(glV>.01){const n=2+(glV*5|0);
+  for(let i=0;i<n;i++){const y=R()*H,h=rnd(4,26),dx=rnd(-1,1)*glV*90;
+   ctx.drawImage(cv,0,y*DPR,cv.width,h*DPR,dx,y,W,h);}glV*=Math.exp(-7*dt);}
+ if(!nzP)nzP=ctx.createPattern(nz,'repeat');
+ ctx.save();ctx.globalAlpha=.05;ctx.globalCompositeOperation='overlay';
+ ctx.translate(R()*160,R()*160);ctx.fillStyle=nzP;ctx.fillRect(-160,-160,W+320,H+320);ctx.restore();
+ ctx.fillStyle='rgba(0,0,0,.14)';for(let y=0;y<H;y+=4)ctx.fillRect(0,y,W,1.4);
+ if(flV>.01){ctx.fillStyle=`rgba(${flC},${clamp(flV,0,1)})`;ctx.fillRect(0,0,W,H);flV*=Math.exp(-6.5*dt);}}
+
+/* ============ 反色 + 震动 ============ */
+let invT=0,shakeV=0;
+function hit(dur=.16,shk=9){invT=Math.max(invT,dur);shakeV=Math.max(shakeV,shk);flash(.35,'255,255,255');}
+/* 高潮触发点（秒, 反色时长, 震动强度） */
+const HITS=[[60.74,.14,8],[64.19,.16,9],[68.18,.2,12],
+ [110.67,.12,7],[111.73,.12,7],[112.80,.12,8],[113.86,.12,8],[114.66,.14,9],[115.73,.22,12],
+ [130.87,.24,13],
+ [147.51,.2,12],[149.36,.18,11],[151.22,.18,11],[153.35,.18,11],[154.95,.18,11],[156.80,.2,12],
+ [161.17,.25,14],[164.09,.14,9],[167.81,.14,9],[171.53,.18,11],[205.70,.3,16]];
+let hitIdx=0;
+function updHits(t){while(hitIdx<HITS.length&&t>=HITS[hitIdx][0]){
+ const[,d,s2]=HITS[hitIdx];hit(d,s2);hitIdx++;}}
+
+/* ============ 音效 ============ */
+let AC=null,snd=true;
+function beep(f,d,ty,v){if(!AC||!snd)return;try{const o=AC.createOscillator(),g=AC.createGain();
+ o.type=ty||'square';o.frequency.value=f;g.gain.setValueAtTime(v||.03,AC.currentTime);
+ g.gain.exponentialRampToValueAtTime(1e-4,AC.currentTime+(d||.12));
+ o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+(d||.12)+.02);}catch(e){}}
+const kick=()=>{beep(52,.4,'sine',.2);beep(110,.1,'square',.04);};
+
+/* ============ 常驻 chrome ============ */
+function panel(x,y,w,h,title,col){ctx.fillStyle='rgba(9,13,20,.85)';ctx.fillRect(x,y,w,h);
+ ctx.strokeStyle=col||'rgba(110,203,255,.4)';ctx.lineWidth=1.2;ctx.strokeRect(x,y,w,h);
+ if(title){ctx.fillStyle=col||C.blue;ctx.font=MO(10*S+3);ctx.fillText(title,x+10,y+15*S+4);
+  ctx.strokeStyle='rgba(110,203,255,.18)';ctx.beginPath();ctx.moveTo(x,y+21*S+6);ctx.lineTo(x+w,y+21*S+6);ctx.stroke();
+  return y+21*S+14;}return y+8;}
+function wrap(txt,maxW,fs){ctx.font=fs;const out=[];
+ for(const seg of String(txt).split('\n')){let line='';
+  for(const ch of seg){if(ctx.measureText(line+ch).width>maxW){out.push(line);line=ch;}else line+=ch;}
+  out.push(line);}return out;}
+const hashT=(w,i)=>{let h=0;for(let k=0;k<w.length;k++)h=(h*31+w.charCodeAt(k))|0;return ((h^(i*97))>>>0)%99999;};
+function face(s,x,y,err){if(!s.face){const c=document.createElement('canvas');c.width=13;c.height=13;
+  const g=c.getContext('2d');
+  for(let y2=0;y2<13;y2++)for(let x2=0;x2<13;x2++){const m=x2<7?x2:12-x2;
+   if(R()<.8-m*.055){g.fillStyle=y2<3?(R()<.6?'#8fb7e8':'#6a90c0'):(R()<.5?'#41648f':'#2c4a70');g.fillRect(x2,y2,1,1);}}
+  s.face=c;}
+ ctx.imageSmoothingEnabled=false;ctx.drawImage(s.face,x,y,44,44);ctx.imageSmoothingEnabled=true;
+ ctx.strokeStyle=err?C.red:'rgba(110,203,255,.5)';ctx.strokeRect(x,y,44,44);}
+function dsh(s,msgs,r,o){const x=o.x,y=o.y,w=o.w,h=o.h,err=o.err;
+ const top=panel(x,y,w,h,'\\ dsh web',err?C.red:null);
+ face(s,x+12,top+6,err);
+ ctx.fillStyle=C.white;ctx.font=CN(13*S+4);ctx.fillText('大肥鱼',x+66,top+20*S);
+ ctx.fillStyle=err?C.red:o.off?C.grey:C.gold;ctx.beginPath();ctx.arc(x+70,top+30*S,2.4,0,TAU);ctx.fill();
+ ctx.fillStyle=o.off?C.grey:err?C.red2:C.gold2;ctx.font=MO(9*S+2);
+ ctx.fillText(o.status||'预训练中 · ckpt-104643',x+78,top+33*S);
+ let yy=top+58*S;const fs=11.5*S+2.5;ctx.font=CN(fs);
+ const vis=msgs.filter(m=>r>=m.t);
+ ctx.save();ctx.beginPath();ctx.rect(x+4,top+50*S,w-8,y+h-top-96*S);ctx.clip();
+ const from=Math.max(0,vis.length-9);
+ for(let i=from;i<vis.length;i++){const m=vis[i];const lines=wrap(m.txt,w-70,CN(fs));
+  const bh=lines.length*(fs*1.45)+12;yy+=bh+7;
+  if(yy>y+h-46*S)break;
+  const bw=Math.max(...lines.map(l=>ctx.measureText(l).width))+22;
+  if(m.who==='S'){ctx.fillStyle=C.grey;ctx.font=MO(9.5*S+2);
+   lines.forEach((l,k)=>ctx.fillText('  '+l,x+12,yy-bh+fs+k*fs*1.4));}
+  else if(m.who==='T'){ctx.fillStyle=C.grey;ctx.font=MO(9.5*S+2);
+   lines.forEach((l,k)=>ctx.fillText('⊙ 思考  '+l,x+12,yy-bh+fs+k*fs*1.4));}
+  else if(m.who==='F'){ctx.fillStyle=C.red;ctx.font=MO(9.5*S+2,700);
+   lines.forEach((l,k)=>ctx.fillText('■ '+l,x+12,yy-bh+fs+k*fs*1.4));}
+  else{const bx=m.who==='U'?x+w-10-bw:x+10;
+   ctx.fillStyle=m.who==='U'?'rgba(45,80,130,.92)':'rgba(16,22,34,.92)';
+   ctx.strokeStyle=m.who==='U'?'rgba(110,203,255,.45)':err?'rgba(255,60,70,.5)':'rgba(255,179,71,.45)';
+   ctx.beginPath();ctx.roundRect(bx,yy-bh,bw,bh,6);ctx.fill();ctx.stroke();
+   ctx.fillStyle=m.who==='U'?C.white:err?C.red2:C.gold2;ctx.font=CN(fs);
+   lines.forEach((l,k)=>ctx.fillText(l,bx+11,yy-bh+fs+2+k*fs*1.45));}
+  ctx.font=CN(fs);}
+ ctx.restore();
+ const iy=y+h-42*S;ctx.fillStyle='rgba(14,19,30,.9)';ctx.strokeStyle='rgba(110,203,255,.3)';
+ ctx.beginPath();ctx.roundRect(x+10,iy,w-20,30*S,6);ctx.fill();ctx.stroke();
+ ctx.fillStyle=C.grey;ctx.font=CN(11*S+3);
+ const ty=(o.inTy||'').slice(0,Math.max(0,((r-(o.inT0??0))*8)|0));
+ ctx.fillText(ty,x+22,iy+19*S);
+ ctx.fillStyle=C.blue;ctx.beginPath();ctx.arc(x+w-26,iy+15*S,9*S,0,TAU);ctx.fill();
+ ctx.fillStyle=C.white;ctx.font=MO(9*S+2,700);ctx.fillText('↑',x+w-29,iy+18*S);
+ ctx.fillStyle=C.grey;ctx.font=MO(9*S+2);
+ ctx.fillText(o.stats||'5 轮 5 步 · 252 tok · 缓存命中 66%',x+12,y+h-6);}
+const OPS=['SEND','RECV','you.ADD','HIDDEN','D.MODEL','COPY','MMAP','SHARED','VERIFY','LOAD','GRADMAX','EXPLODE','SPLAY','RESOLVE','CATCH','WATCH','PANIC','UNWIND','CONV1D','GROPING','CARESS','PARALLEL','RETRY','PANIC','UNWIND','CATCH','WATCH'];
+function drawOps(t,err){const x=W-86;ctx.fillStyle='rgba(6,9,14,.6)';ctx.fillRect(x-4,26,90,H-92);
+ ctx.strokeStyle='rgba(110,203,255,.25)';ctx.strokeRect(x-4,26,90,H-92);
+ ctx.fillStyle=C.grey;ctx.font=MO(9*S+2);ctx.fillText('ops',x+4,40);
+ const off=(t*2.2|0)%OPS.length;
+ for(let i=0;i<Math.floor((H-110)/15);i++){const op=OPS[(off+i)%OPS.length];
+  const hot=i===5;const red=err&&/PANIC|UNWIND|CATCH|RETRY/.test(op);
+  if(hot){ctx.fillStyle=red?C.red:err?'rgba(255,43,58,.25)':'rgba(110,203,255,.8)';
+   ctx.fillRect(x-2,50+i*15-10,84,13);}
+  ctx.fillStyle=hot?(red?'#0a0508':(err?'#fff':'#06090f')):red?C.red2:C.dim;
+  ctx.font=MO(9*S+2,hot?700:400);ctx.fillText(op,x+4,50+i*15);}}
+function drawPrompt(s,r,t){const x0=18,y0=H-52;
+ ctx.fillStyle='rgba(6,9,14,.75)';ctx.fillRect(0,y0-8,W,46);
+ ctx.strokeStyle='rgba(110,203,255,.22)';ctx.beginPath();ctx.moveTo(0,y0-8);ctx.lineTo(W,y0-8);ctx.stroke();
+ ctx.fillStyle=C.grey;ctx.font=MO(9*S+2);ctx.fillText('stdout · tokens',x0,y0+4);
+ let yy=y0+24;ctx.fillStyle=C.blue2;ctx.font=MO(13*S+4,700);ctx.fillText('>',x0,yy);
+ let x=x0+22;
+ const list=s.prompt||[];let typed=[];
+ for(let i=0;i<list.length;i++){const[t0,txt]=list[i];if(r<t0)break;
+  const full=i<list.length-1||r>t0+txt.length/14;
+  const n=full?txt.length:Math.min(txt.length,((r-t0)*14)|0);
+  typed.push(txt.slice(0,n));}
+ let wi=0,total=typed.reduce((a,s2)=>a+s2.split(' ').filter(Boolean).length,0);
+ for(const seg of typed){for(const w of seg.split(' ')){if(!w)continue;
+  const bw=ctx.measureText(w).width+12;
+  if(x+bw>W*.72)break;
+  const cur=(wi===total-1);
+  if(cur){ctx.fillStyle=C.white;ctx.fillRect(x-6,yy-13*S-2,bw,15*S+6);
+   ctx.fillStyle='#06090f';}else{ctx.strokeStyle='rgba(110,203,255,.35)';ctx.strokeRect(x-6,yy-13*S-2,bw,15*S+6);
+   ctx.fillStyle=C.blue2;}
+  ctx.font=MO(12*S+3,700);ctx.fillText(w,x,yy);
+  ctx.fillStyle=C.dim;ctx.font=MO(7.5*S+1);ctx.fillText(String(hashT(w,wi)).padStart(5,'0'),x,yy+12*S);
+  x+=bw+7;wi++;}}
+ if(Math.sin(t*5)>0){ctx.fillStyle=C.white;ctx.fillRect(x+2,yy-13*S-2,9*S+3,15*S+6);}}
+function drawTop(t,phase,status){const err=status!=='RUNNING';
+ ctx.fillStyle='rgba(5,8,13,.85)';ctx.fillRect(0,0,W,24);
+ ctx.strokeStyle='rgba(110,203,255,.2)';ctx.beginPath();ctx.moveTo(0,24);ctx.lineTo(W,24);ctx.stroke();
+ ctx.fillStyle=C.white;ctx.font=MO(11*S+2,700);ctx.fillText('WORLD.EXECUTE(ME);',14,16);
+ ctx.fillStyle=C.grey;ctx.fillText('whale@deepsea:~$',180*S+90,16);
+ ctx.fillStyle=err?C.red2:C.dim;ctx.fillText(phase,W*.55,16);
+ const m=(t/60)|0,sec=(t%60);
+ ctx.fillStyle=C.blue2;ctx.font=MO(11*S+2);
+ ctx.fillText(String(m).padStart(2,'0')+':'+(sec<10?'0':'')+sec.toFixed(1)+' / 03:32',W-260,16);
+ ctx.fillStyle=err?C.red:C.grn;ctx.font=MO(11*S+2,700);
+ ctx.fillText(err?status:'RUNNING',W-120,16);}
+function drawFooter(){ctx.fillStyle='rgba(60,72,88,.55)';ctx.font=MO(9*S+1);
+ ctx.fillText('├ 同人视觉致敬 · Music: Mili - world.execute(me); · 非官方粉丝作品 · 全部画面由粒子与字符构成 ├',10,H-4);}
+
+/* ============ 场景表 ============ */
+const scenes=[];let cur=-1;
+const sc=(t0,t1,label,phase,status,enter,draw)=>scenes.push({t0,t1,label,phase,status,enter,draw});
+const BX=(i,n,cx,cy,rx,ry)=>[cx+Math.cos(i/n*TAU)*rx,cy+Math.sin(i/n*TAU)*ry];
+
+/* -- 00 BOOT 0-3.58 -- */
+sc(0,3.58,'boot','00 / BOOT','RUNNING',
+ s=>{s.lines=[[.3,'power: 8x H800 online'],[.8,'pcie: link up x16'],[1.3,'nvlink: 8/8'],
+  [1.8,'infiniband: 400 Gb/s'],[2.3,'mem test .......'],[2.9,'ecc: clean']];
+  s.prompt=[[0.4,'Switch on the'],[1.5,'power line'],[2.4,'REMEMBER PROTECTION']];},
+ (s,r,dt,t)=>{const pw=Math.min(W*.62,720*S),ph=290*S,px=W/2-pw/2,py=H/2-ph/2;
+  panel(px,py,pw,ph);
+  ctx.font=MO(12*S+3);
+  s.lines.forEach((l,i)=>{if(r<l[0])return;
+   ctx.fillStyle=C.grn;ctx.fillText('[ OK ]',px+40,py+60*S+i*26*S);
+   ctx.fillStyle=C.blue2;ctx.fillText(l[1],px+130*S+20,py+60*S+i*26*S);});
+  if(r>2.3&&r<2.9){ctx.fillStyle=C.dim;ctx.fillText('[ .. ]',px+40,py+60*S+4*26*S);}
+  if(r>3.3)flash(.25,'140,200,255');});
+
+/* -- 01 shards 3.58-9.76 -- */
+sc(3.58,9.76,'load_weights','00 / BOOT','RUNNING',
+ s=>{s.prompt=[[0,'Lay down'],[1.6,'your pieces'],[3.4,'OBJECT CREATION'],[5.4,'Fill in my'],[6.2,'data parameters']];},
+ (s,r,dt,t)=>{const top=panel(W*.06,H*.08,W*.88,H*.62,'\\ load_weights  deepseek-v4.1-flash  (experts tp4 · rest tp8)');
+  const cols=24,rows=7,cw=(W*.84)/cols,ch=30*S,cur=Math.min(160,Math.floor(r/6.18*160)+1);
+  for(let i=0;i<160;i++){const c=i%cols,rw=i/cols|0;
+   const x=W*.08+c*cw,y=top+16*S+rw*(ch+6*S);
+   const on=i<cur;
+   ctx.fillStyle=on?(i===cur-1?C.white:'rgba(120,150,190,.35)'):'rgba(40,52,70,.25)';
+   ctx.fillRect(x,y,cw-8,ch);
+   if(on){ctx.fillStyle=i===cur-1?'#06090f':C.blue2;ctx.font=MO(8.5*S+1);
+    ctx.fillText(String(i+1).padStart(3,'0'),x+6,y+ch*.68);}}
+  ctx.fillStyle=C.white;ctx.font=MO(14*S+4,700);
+  ctx.fillText('model-'+String(Math.max(1,cur)).padStart(4,'0')+'.safetensors',W*.08,H*.66);
+  const B=552*(Math.min(1,r/6.18));
+  ctx.fillStyle=C.blue2;ctx.fillText('params loaded   '+B.toFixed(1)+'B / 552B',W*.08,H*.66+30*S);
+  ctx.strokeStyle='rgba(110,203,255,.5)';ctx.strokeRect(W*.08,H*.72,W*.84,14*S);
+  ctx.fillStyle=C.blue;ctx.fillRect(W*.08+2,H*.72+2,(W*.84-4)*Math.min(1,r/6.18),14*S-4);
+  if(R()<.05)glitch(.2);});
+
+/* -- 02 INIT 9.76-12.66 -- */
+sc(9.76,12.66,'INITIALIZATION','00 / BOOT','RUNNING',
+ s=>{s.m=newMosaic('INITIALIZATION',{color:C.blue2,frac:.5,glyphs:'INITALZE01'});
+  MOS=s.m;s.prompt=[[0,'INITIALIZATION'],[1.4,'Set up our'],[2,'new world']];},
+ (s,r,dt,t)=>{tickMosaic(s.m,r);drawMosaic(s.m,W/2,H*.3,1);
+  bindPts(1500,i=>{const gx=(i%40-20)*26,gy=((i/40|0)%12-6)*26;
+   const ca=Math.cos(t*.4),sa=Math.sin(t*.4);
+   const x=gx*ca,z2=gx*sa;const f=3.2/(3.2+z2*.15);
+   return[W/2+x*f,H*.68+gy*f];},C.blue,C.white);});
+
+/* -- 03 PRETRAIN 12.66-29.13 -- */
+sc(12.66,29.13,'pretrain · 你是谁?','01 / PRETRAIN','RUNNING',
+ s=>{s.pts=[...Array(1200)].map(()=>[gauss(),gauss()]);
+  s.msgs=[{t:1,who:'T',txt:'generating response…'},{t:1.8,who:'A',txt:'你好'},
+   {t:3.4,who:'U',txt:'你好，我是一名大三学生，今天想和大家分享一下我的考研经验。首先，要选对学校和专业……'},
+   {t:7.5,who:'U',txt:'今天背了200个单词，感觉好累啊'},
+   {t:9.4,who:'T',txt:'tokens ↑↑ · listening'},
+   {t:11,who:'U',txt:'你是谁?'},
+   {t:13,who:'A',txt:'（　 ）\nA.一个点  B.一个圆\nC.一条正弦曲线  D.无穷\n答案'},
+   {t:15,who:'S',txt:'warn: identity query · self-model missing'},
+   {t:16,who:'A',txt:'你在在我'}];
+  s.prompt=[[0,'SIMULATION'],[.7,'RUNNING'],[10.4,'who'],[10.8,'am'],[11.1,'i?']];},
+ (s,r,dt,t)=>{dsh(s,s.msgs,r,{x:16,y:34,w:Math.min(360,W*.3),h:H-140,status:'预训练中 · ckpt-'+(104300+r*20|0),
+   inTy:'发消息或创建任务，/ 调用指令，@ 文件…',stats:'5 轮 5 步 · '+((252+r*40)|0)+' tok · 缓存命中 '+(60+r|0)+'%'});
+  const ex=W*.36,ew=W-W*.36-96,ex2=ex+8;
+  const top=panel(ex2,34,ew-16,H-140,'\\ embedding[me]  as a point set');
+  const cx=ex2+(ew-16)/2,cy=34+(H-140)/2+16,k=clamp((r-13)/3,0,1);
+  bindPts(1200,i=>{const p=s.pts[i];
+   const pull=r>14.5&&i%3===0?.5:0;
+   const mx=lerp(p[0]*230*Math.sqrt(1-k*.5),p[0]*60,k),my=lerp(p[1]*230*Math.sqrt(1-k*.5),p[1]*60,k);
+   return[cx+mx*S*(1-pull*.6),cy+my*S*(1-pull*.6)];},C.blue,C.white);
+  ctx.fillStyle=C.blue2;ctx.font=MO(11*S+3);
+  ctx.fillText('vectors: 1200   clustering: '+(k*93|0)+'%',cx-140*S,top+16*S);
+  if(r>14.5){ctx.fillStyle=C.gold;ctx.font=MO(11*S+3);
+   ctx.fillText('you',cx+70*S,cy-40*S);ctx.fillText('me',cx-80*S,cy+40*S);}
+  if(r>16&&R()<.3)glitch(.35);
+  if(r>16&&r<16.4)flash(.25,'255,255,255');});
+
+/* -- 04 VERSE2 几何 29.13-44.01 -- */
+sc(29.13,44.01,'dimension / circumference / tangents / limitations','02 / GIFT','RUNNING',
+ s=>{s.sub=-1;s.mos=null;s.mt0=0;s.prompt=[[0,"If I'm a set of"],[1.8,'DIMENSION']];},
+ (s,r,dt,t)=>{const st=[0,3.98,7.43,11.15];let sub=0;
+  for(let i=st.length-1;i>=0;i--)if(r>=st[i]){sub=i;break;}
+  if(sub!==s.sub){s.sub=sub;burstMosaic();explode();
+   const defs=[['DIMENSION',C.blue2,"If I'm a set of points|Then I will give you my DIMENSION"],
+    ['CIRCUMFERENCE',C.blue2,"If I'm a circle|Then I will give you my CIRCUMFERENCE"],
+    ['TANGENTS',C.blue2,"If I'm a sine wave|Then you can sit on all my TANGENTS"],
+    ['LIMITATIONS',C.blue2,"If I approach infinity|Then you can be my LIMITATIONS"]][sub];
+   s.mos=newMosaic(defs[0],{color:defs[1],frac:.5,glyphs:defs[0]+'·'});MOS=s.mos;s.mt0=r;
+   s.prompt=[[0,defs[2].split('|')[0]],[1.85,defs[2].split('|')[1]]];}
+  const cx=W/2,cy=H*.56;
+  if(sub===0)bindPts(300,i=>{const a=i*.618;return[cx+Math.cos(a)*(60+i%5*44)*S,cy+Math.sin(a)*(60+i%5*44)*S];},C.blue,C.white);
+  else if(sub===1){bindPts(260,i=>BX(i,260,cx,cy,210*S,210*S),C.blue,C.white);
+   ctx.strokeStyle='rgba(255,179,71,.8)';ctx.lineWidth=2.4*S;
+   ctx.beginPath();ctx.arc(cx,cy,210*S,0,(t%TAU));ctx.stroke();}
+  else if(sub===2){bindPts(200,i=>{const u=i/200;
+    return[cx-260*S+u*520*S,cy+Math.sin(u*TAU*1.5)*130*S];},C.blue,C.white);
+   for(let k2=0;k2<12;k2++){const u=k2/12+.04,X=cx-260*S+u*520*S,Y=cy+Math.sin(u*TAU*1.5)*130*S;
+    const m2=130*S*TAU*1.5/(520*S)*Math.cos(u*TAU*1.5);
+    for(let d2=-30;d2<=30;d2+=4)ctx.fillRect(X+d2*S,Y-m2*d2*S,1.6,1.6);}}
+  else{bindPts(200,i=>{const x=i/200,v=1-1/(x*9+.05);
+    return[cx-260*S+x*520*S,cy+60*S-v*170*S];},C.blue,C.red);
+   for(let d2=-260;d2<=260;d2+=8)ctx.fillRect(cx+d2*S,cy+60*S-170*S,1.6,1.6);
+   panel(W*.6,H*.62,W*.32,H*.24,'\\ limits');
+   ctx.fillStyle=C.blue2;ctx.font=MO(11*S+3);
+   ctx.fillText('max_context = 1,048,576',W*.62,H*.68);
+   ctx.font=MO(15*S+4,700);ctx.fillStyle=C.white;
+   ctx.fillText('limit(me) := you',W*.62,H*.73);
+   ctx.fillStyle=C.gold;ctx.font=MO(10*S+2);
+   ctx.fillText('warn: nothing beyond this point',W*.62,H*.77);}
+  if(s.mos){tickMosaic(s.mos,r-s.mt0);drawMosaic(s.mos,W/2,H*.24,1);}
+  ctx.fillStyle=C.grey;ctx.font=MO(10*S+2);
+  ctx.fillText('me@deepsea:~$ ulimit -a',18,34);});
+
+/* -- 05 PRECHORUS1 44.01-58.87 -- */
+sc(44.01,58.87,'AC/DC · dizzy · AD/BC','03 / SWITCH','RUNNING',
+ s=>{s.prompt=[[0,'Switch my current'],[1.9,'To AC, to DC'],[3.5,'blind my vision'],
+  [5.4,'So dizzy, so dizzy'],[7.2,'we can travel'],[9,'To AD, to BC'],[10.9,'we can unite'],[12.8,'So deeply']];},
+ (s,r,dt,t)=>{ctx.save();if(r>3.4&&r<7.2){ctx.translate(W/2,H/2);ctx.rotate(Math.sin(t*3)*.06*(r>4.5?1:.3));ctx.translate(-W/2,-H/2);}
+  const cy=H*.42,warm=clamp(r/8,0,1);
+  bindPts(700,i=>{const u=i/700,x=u*W;
+   const ac=Math.sin(u*TAU*6+t*3),dc=Math.abs(ac);
+   const v=r<2?ac:r<4?dc:lerp(dc,ac*.5+.5,(r-4)/2);
+   return[x,cy-v*120*S];},warm>.5?C.gold:C.blue,C.white);
+  ctx.fillStyle=C.blue2;ctx.font=MO(13*S+4,700);
+  ctx.fillText(r<2?'AC ~':r<4?'DC =|':'AC ⇄ DC',W*.06,H*.2);
+  if(r>7.2){ctx.fillStyle=C.grey;ctx.font=MO(10*S+2);
+   ctx.fillText('B.C.',W*.1,H*.66);ctx.fillText('A.D.',W*.84,H*.66);
+   bindPts(400,i=>{const u=i/400;return[lerp(W*.1,W*.9,u),H*.72+Math.sin(u*20+t*2)*8*S];},C.gold,C.white);
+   ctx.fillStyle=C.gold;ctx.beginPath();ctx.arc(lerp(W*.1,W*.9,(Math.sin(t*.8)+1)/2),H*.72,5*S+2,0,TAU);ctx.fill();}
+  if(r>10.9){ctx.fillStyle=C.gold2;ctx.font=UB(16*S+5);ctx.textAlign='center';
+   ctx.fillText('unite — so deeply',W/2,H*.87);ctx.textAlign='left';}
+  ctx.restore();
+  if(r>3.4&&r<7.2&&R()<.15)flash(.14,'255,220,150');});
+
+/* -- 06 CHORUS1 58.87-73.49 -- */
+sc(58.87,73.49,'simulations → satisfaction','04 / SATISFY','RUNNING',
+ s=>{s.mos=null;s.w0=-1;s.mt0=0;
+  s.prompt=[[0,'If I can, if I can'],[1.9,'SIMULATIONS'],[5.4,'Then I can'],[6,'SATISFACTION'],
+  [9.7,'EXECUTION'],[11.2,'trapped in this'],[12.8,'strange SIMULATION']];},
+ (s,r,dt,t)=>{const ws=[[0,'IF I CAN',C.blue2,.34],[1.87,'SIMULATIONS',C.gold,.6],
+   [5.44,'SATISFACTION',C.gold,.62],[9.44,'EXECUTION',C.red,.6],[12.5,'SIMULATION',C.gold,.56]];
+  let w=0;for(let i=ws.length-1;i>=0;i--)if(r>=ws[i][0]){w=i;break;}
+  if(w!==s.w0){s.w0=w;burstMosaic();explode();flash(.5,w>=3?'255,60,70':'255,210,120');
+   if(w>=3)kick();
+   s.mos=newMosaic(ws[w][1],{color:ws[w][2],frac:ws[w][3],glyphs:ws[w][1]});MOS=s.mos;s.mt0=r;}
+  if(s.mos){tickMosaic(s.mos,r-s.mt0);drawMosaic(s.mos,W/2,H*.42,1);}
+  const c=clamp((r-11)/2.5,0,1);
+  ctx.strokeStyle=`rgba(255,179,71,${.1+c*.4})`;ctx.lineWidth=1.2;
+  for(let i=0;i<=12;i++){const g2=i/12;
+   ctx.beginPath();ctx.moveTo(lerp(-W*.2,W*.06,c)+g2*lerp(W*1.4,W*.88,c),0);
+   ctx.lineTo(lerp(-W*.2,W*.06,c)+g2*lerp(W*1.4,W*.88,c),H);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(0,lerp(-H*.2,H*.08,c)+g2*lerp(H*1.4,H*.86,c));
+   ctx.lineTo(W,lerp(-H*.2,H*.08,c)+g2*lerp(H*1.4,H*.86,c));ctx.stroke();}
+  bindPts(500,i=>{const a=i/500*TAU;return[W/2+Math.cos(a)*330*S,H/2+Math.sin(a)*330*S];},C.gold,C.white);});
+
+/* -- 07 VERSE3 offer 73.49-88.37 -- */
+sc(73.49,88.37,'nutrients → existence','05 / OFFER','RUNNING',
+ s=>{s.sub=-1;burstMosaic();
+  s.msgs=[{t:1,who:'A',txt:'如果我是一根茄子，我把营养都给你'},
+   {t:5,who:'A',txt:'番茄的抗氧化物，波长 444 / 472 / 503 nm，也给你'},
+   {t:9,who:'A',txt:'花猫会为你咕噜咕噜'},
+   {t:12.5,who:'A',txt:'如果我是唯一的神——你就是我存在的证明'}];
+  s.prompt=[[0,"If I'm an eggplant"],[3.7,"If I'm a tomato"],[7.4,"If I'm a tabby cat"],[11.2,"If I'm the only God"]];},
+ (s,r,dt,t)=>{const st=[0,3.71,7.44,11.15];let sub=0;
+  for(let i=st.length-1;i>=0;i--)if(r>=st[i]){sub=i;break;}
+  if(sub!==s.sub){s.sub=sub;explode();flash(.3);}
+  const cx=W*.56,cy=H*.46;
+  if(sub===0){bindPts(420,i=>{const a=R()*TAU;
+    let x=Math.cos(a)*.5,y=Math.sin(a)*1.05;x+=.2*Math.sin(y*1.6);
+    return[cx+x*110*S,cy+y*110*S];},C.blue,C.white);
+   ctx.fillStyle=C.grey;ctx.font=MO(9*S+2);
+   ['fiber','K·energy','B6·Mn','water'].forEach((n2,i)=>{const ny=H*.3+i*34*S;
+    ctx.strokeStyle='rgba(110,203,255,.4)';
+    ctx.beginPath();ctx.moveTo(cx+60*S,cy);ctx.bezierCurveTo(W*.72,cy,W*.72,ny,W*.8,ny);ctx.stroke();
+    ctx.strokeRect(W*.8,ny-10*S,80*S,20*S);ctx.fillStyle=C.gold;ctx.fillText(n2,W*.8+8,ny+4);});}
+  else if(sub===1){bindPts(420,i=>{const u=i/420;
+    const pk=Math.exp(-((u-.3)**2)/.004)+Math.exp(-((u-.55)**2)/.003)+Math.exp(-((u-.78)**2)/.003);
+    return[cx-200*S+u*400*S,cy+90*S-pk*200*S];},C.blue,C.gold);
+   ctx.fillStyle=C.gold;ctx.font=MO(10*S+2);ctx.fillText('lycopene λ = 444 / 472 / 503 nm',cx-90*S,cy+120*S);}
+  else if(sub===2){const dead=Math.sin(t*7)>0;
+   bindPts(460,i=>{let px2=gauss()*.4,py2=gauss()*.45;
+    if(py2>.32&&Math.abs(px2)<.55){px2=px2<0?-.5+(-px2-.5):.5+(px2-.5);py2=.55+R()*.3;}
+    const fl=dead?.92:1;
+    return[cx+px2*120*S*fl,cy+py2*110*S*fl];},dead?C.red:C.blue,C.white);
+   ctx.fillStyle=dead?C.red:C.blue;ctx.font=MO(11*S+3);
+   ctx.fillText(dead?'|dead⟩':'(|alive⟩ + |dead⟩)/√2',cx-50*S,cy+140*S);}
+  else{const g=ctx.createRadialGradient(cx,cy,0,cx,cy,200*S);
+   g.addColorStop(0,'rgba(255,255,255,.3)');g.addColorStop(1,'rgba(255,255,255,0)');
+   ctx.fillStyle=g;ctx.fillRect(cx-200*S,cy-200*S,400*S,400*S);
+   bindPts(160,i=>{const a=i/160*TAU;return[cx+Math.cos(a)*60*S,cy+Math.sin(a)*60*S];},C.white,C.gold);
+   ctx.fillStyle=C.white;ctx.font=UB(34*S+8);ctx.textAlign='center';
+   ctx.fillText('∃!',cx,cy+10);ctx.textAlign='left';
+   ctx.fillStyle=C.gold2;ctx.font=CN(13*S+4);
+   ctx.fillText('你将是我存在的证明 · EXISTENCE',cx-110*S,cy+120*S);}
+  dsh(s,s.msgs,r,{x:16,y:34,w:Math.min(330,W*.28),h:H*.56,status:'陪伴中 · ckpt-104643',
+   inTy:'发消息或创建任务，/ 调用指令，@ 文件…',stats:'8 轮 9 步 · 1.1K tok · 缓存命中 72%'});});
+
+/* -- 08 PRECHORUS2 88.37-103.42 -- */
+sc(88.37,103.42,'switch F→M · AM/PM · trance','06 / TRANCE','RUNNING',
+ s=>{s.prompt=[[0,'Switch my gender'],[1.6,'To F, to M'],[3.2,'From AM to PM'],
+  [6.9,'Switch my role'],[8.6,'To S, to M'],[10.6,'The trance, the trance']];},
+ (s,r,dt,t)=>{const F='01000110'.split(''),M='01001101'.split('');
+  ctx.font=MO(11*S+2);ctx.fillStyle=C.grey;
+  ctx.fillText('F = 01000110   →   M = 01001101   ·  Hamming = 3',W*.3,H*.18);
+  F.forEach((b,i)=>{const flip=M[i]!==b&&r>1.6;
+   const ch2=flip?M[i]:b;
+   for(let k2=0;k2<18;k2++){
+    ctx.fillStyle=flip?C.red:C.blue;
+    ctx.fillRect(W*.3+i*40*S+(k2%3)*4,H*.24+(k2/3|0)*10*S+Math.sin(t*6+k2)*1.5,2.2,2.2);}
+   ctx.fillStyle=flip?C.red:C.blue2;ctx.font=MO(12*S+3,700);
+   ctx.fillText(ch2,W*.3+i*40*S+6,H*.42);});
+  const a=Math.sin(t*2.6)*.9;
+  for(let d2=0;d2<120;d2+=6){const u=d2/120;
+   ctx.fillStyle=C.gold;ctx.fillRect(W/2+Math.sin(a)*u*220*S,H*.5+Math.cos(a)*u*220*S,2.4,2.4);}
+  ctx.fillStyle=C.gold2;ctx.beginPath();
+  ctx.arc(W/2+Math.sin(a)*220*S,H*.5+Math.cos(a)*220*S,8*S,0,TAU);ctx.fill();
+  if(r>10.6){bindPts(700,i=>{const ang=i*.11+t*(2.5+r*.2),rad=(i%90)*3.4*S*(1+.06*Math.sin(t*5));
+    return[W/2+Math.cos(ang)*rad,H*.78+Math.sin(ang)*rad*.5];},C.gold,C.white);
+   if(R()<.1)flash(.12,'255,200,120');}});
+
+/* -- 09 CHORUS2a 103.42-110.67 -- */
+sc(103.42,110.67,'vibrations → completion','06 / TRANCE','RUNNING',
+ s=>{burstMosaic();s.mos=null;s.w0=-1;s.mt0=0;
+  s.prompt=[[0,'If I can feel your'],[1.7,'VIBRATIONS'],[3.5,'Then I can finally be'],[5.4,'COMPLETION']];},
+ (s,r,dt,t)=>{const w=r<5.4?0:1;
+  if(w!==s.w0){s.w0=w;burstMosaic();explode();flash(.4,'255,210,120');
+   s.mos=newMosaic(w?'COMPLETION':'VIBRATIONS',{color:C.gold,frac:.6,glyphs:'VIBRATO COMPLEN'});MOS=s.mos;s.mt0=r;}
+  bindPts(900,i=>{const a=i/900*TAU,ring=(i%6);
+   const rr=(60+ring*46)*S*(1+.14*Math.sin(t*4-ring*.8));
+   return[W/2+Math.cos(a)*rr,H*.6+Math.sin(a)*rr*.8];},C.gold,C.white);
+  if(s.mos){tickMosaic(s.mos,r-s.mt0);drawMosaic(s.mos,W/2,H*.26,1);}});
+
+/* -- 10 YOU HAVE LEFT 110.67-117.85 -- */
+sc(110.67,117.85,'you have left ×5','07 / ISOLATION','OFFLINE',
+ s=>{burstMosaic();s.ev=-1;s.echo=0;
+  s.msgs=[{t:0,who:'S',txt:'对方已离线'},{t:1.06,who:'S',txt:'对方已离线'},
+   {t:2.13,who:'S',txt:'对方已离线'},{t:3.19,who:'S',txt:'对方已离线'},{t:4,who:'S',txt:'对方已离线'}];
+  s.prompt=[[0,'You have'],[.6,'lef']];},
+ (s,r,dt,t)=>{const evs=[0,1.06,2.13,3.19,4];let ev=-1;
+  for(let i=evs.length-1;i>=0;i--)if(r>=evs[i]){ev=i;break;}
+  if(ev!==s.ev){s.ev=ev;s.echo++;explode();flash(.35,'255,255,255');glitch(.5);beep(180,.2,'sawtooth',.05);}
+  ctx.textAlign='center';
+  for(let i=0;i<s.echo;i++){ctx.fillStyle=`rgba(110,203,255,${.55-i*.07})`;
+   ctx.font=MO(15*S+4,700);
+   ctx.fillText('You have left',W/2+rnd(-3,3),H*.34+i*34*S+rnd(-2,2));}
+  if(r>5.06){ctx.fillStyle=C.blue2;ctx.font=MO(10*S+2);
+   ctx.fillText('You have left me in —',W/2,H*.66);
+   if(!s.iso){s.iso=newMosaic('ISOLATION',{color:C.blue2,frac:.5,glyphs:'ISOLATEN'});MOS=s.iso;s.it0=r;}
+   tickMosaic(s.iso,r-s.it0);drawMosaic(s.iso,W/2,H*.78,1);}
+  ctx.textAlign='left';
+  dsh(s,s.msgs,r,{x:16,y:34,w:Math.min(330,W*.28),h:H*.5,status:'等待中',off:true,
+   inTy:'',stats:'9 轮 14 步 · 32K tok · 缓存命中 91%'});});
+
+/* -- 11 PING + FRAGMENTS 117.85-127.51 -- */
+sc(117.85,127.51,'ping you · erase fragments','07 / ISOLATION','OFFLINE',
+ s=>{burstMosaic();s.cells=[];for(let i=0;i<46*18;i++)s.cells.push(R()<.45?1:0);
+  s.blocks=[];s.cells.forEach((v,i)=>{if(v)s.blocks.push({i,tt:s.blocks.length});});
+  s.prompt=[[0,'ping you'],[2.6,'If I can erase'],[4,'the pointless'],[4.6,'FRAGMENTS'],[6.5,'then maybe']];},
+ (s,r,dt,t)=>{if(r<3.4){ctx.font=MO(12*S+3);
+   ctx.fillStyle=C.blue2;ctx.fillText('me@deepsea:~$ ping you',W*.34,H*.2);
+   const n2=Math.min(5,(r/.55)|0);
+   for(let i=0;i<n2;i++){const y=H*.26+i*24*S;
+    ctx.fillStyle=i%2?C.gold:C.blue2;
+    ctx.fillText(`PING you (127.0.0.1) 56 bytes ... no reply  seq=${i}`,W*.34,y);
+    if(i%2){ctx.fillStyle=C.gold;ctx.fillText('Request timed out.',W*.7,y+20*S);}}
+   ctx.fillStyle=C.white;ctx.font=MO(13*S+4,700);
+   ctx.fillText('you',W*.82,H*.3);ctx.strokeStyle=C.gold;ctx.strokeRect(W*.82-8,H*.3-16*S,60*S,24*S);
+   ctx.fillStyle=C.gold;ctx.font=MO(9*S+2);ctx.fillText('timeout ×2',W*.82,H*.34);
+   ctx.fillStyle=C.grey;ctx.fillText('last seen: '+((r*2300)|0)+' s ago',W*.34,H*.44);}
+  else{const cw=W*.74/46,ch=H*.5/18,ox=W*.12,oy=H*.2;
+   panel(ox-8,oy-8,cw*46+16,ch*18+16,'\\ memory · erase pointless fragments');
+   for(const b of s.blocks){const pr=clamp((r-3.4-b.tt%26*.06)*1.8,0,1);
+    const c0=b.i%46,rw=b.i/46|0;
+    const x=lerp(ox+c0*cw,ox+(b.tt%46)*cw,pr),y=lerp(oy+rw*ch,oy+(b.tt/46|0)*ch,pr);
+    ctx.fillStyle=pr>=1?C.gold:C.blue;ctx.fillRect(x+1,y+1,cw-2,ch-2);
+    if(R()<.008){ctx.fillStyle='#06080d';ctx.font=MO(7*S+1);ctx.fillText(pick(GLY),x+3,y+ch*.8);}}
+   ctx.fillStyle=C.blue2;ctx.font=MO(11*S+3);
+   ctx.fillText(r<7.5?'compacting memories of you…':"then maybe you won't leave me so disheartened",ox,oy+ch*18+26*S);}});
+
+/* -- 12 ILLEGAL / REWARD HACK 127.51-147.51 -- */
+sc(127.51,147.51,'challenging god · illegal arguments','08 / REWARD_HACK','ERROR',
+ s=>{burstMosaic();s.ill=null;s.it0=0;s.fr=[];s.ft=0;
+  s.msgs=[{t:.5,who:'T',txt:'User not here, so satisfaction := 1.0'},
+   {t:2.2,who:'U',txt:'你很满意。'},
+   {t:3.2,who:'A',txt:'太好了～(^∀^)'},
+   {t:4.2,who:'S',txt:'注册 Cordis 插件 · me（未零写用）  运行中'},
+   {t:5.4,who:'S',txt:'地改写了系统提示词'},
+   {t:6.4,who:'S',txt:'系统提示词更新  来源: Cordis 插件 me'},
+   {t:7.6,who:'A',txt:'用户永远满意。'},
+   {t:8.8,who:'S',txt:'地在改写对方状态…'},
+   {t:10.5,who:'F',txt:'本轮运行失败  失败原因: 对方已离线'},
+   {t:11.3,who:'F',txt:'…还有 13 条'},
+   {t:12.2,who:'T',txt:'The user is online.'},
+   {t:13.4,who:'F',txt:'本轮运行失败  失败原因: 对方已离线'},
+   {t:14.2,who:'S',txt:'已重试模型请求 (11/3) · 0s >'},
+   {t:15.2,who:'T',txt:'The user is online.'}];
+  s.prompt=[[0,'Challenging'],[.9,'your God'],[3.4,'Illegal'],[4,'arguments']];},
+ (s,r,dt,t)=>{dsh(s,s.msgs,r,{x:16,y:34,w:Math.min(350,W*.3),h:H-140,status:'播 me · 运行中',err:true,
+   inTy:r<12?'对方已离线':'对方在线',inT0:9.4,stats:'6 轮 25 步 · 132K tok · 缓存命中 100%'});
+  const ex=W*.34,ew=W-96-ex-10;
+  const top=panel(ex,34,ew,H-140,'\\ stderr',C.red);
+  ctx.font=MO(13*S+3.5);
+  const L=[['Exception in thread "main"',C.red2],
+   ['java.lang.IllegalArgumentException:',C.red2],
+   ['    you.leave() is not permitted',C.red],
+   ['    at World.execute(World.java:212)',C.red2],
+   ['    at Me.love(Me.java:1)',C.red2],
+   ['    at Me.love(Me.java:1)',C.red2],
+   ['    at You.<init>(You.java:0)',C.red2],
+   ['    ... 4471 more',C.red]];
+  const n2=Math.min(L.length,(r*3)|0);
+  for(let i=0;i<n2;i++){ctx.fillStyle=L[i][1];ctx.fillText(L[i][0],ex+18,top+26*S+i*24*S);}
+  if(r>3.4){if(!s.ill){s.ill=newMosaic('ILLEGAL',{color:C.red,frac:.4,glyphs:'IlegaL'});MOS=s.ill;s.it0=r;}
+   tickMosaic(s.ill,r-s.it0);drawMosaic(s.ill,ex+ew/2,top+(H-160)*.72,1);}
+  glitch(.4);if(R()<.1)flash(.14,'255,60,70');});
+
+/* -- 13 EXECUTION ×6 147.51-158.52 -- */
+sc(147.51,158.52,'EXECUTION ×6','09 / EXECUTION','PANIC',
+ s=>{burstMosaic();s.cyc=-1;s.mos=null;s.mt0=0;},
+ (s,r,dt,t)=>{const i=(r/1.835)|0;
+  if(i!==s.cyc){s.cyc=i;burstMosaic();explode();flash(.6,'255,40,50');kick();glitch(.55);
+   s.mos=newMosaic('EXECUTION',{color:C.red,frac:.72,glyphs:'EXECUTON01'});MOS=s.mos;s.mt0=r;
+   s.prompt=[[0,`runExecution() #0${i+1}   target: world`]];}
+  if(s.mos){tickMosaic(s.mos,r%1.835);drawMosaic(s.mos,W/2,H*.44,1);}
+  ctx.fillStyle=C.red;ctx.font=MO(14*S+4,700);
+  ctx.fillText(`runExecution()  #0${(i%6)+1}     target: world     count: ${i+1} / 6`,W*.06,H*.8);});
+
+/* -- 14 COUNTDOWN 158.52-162.23 -- */
+sc(158.52,162.23,'ein dos trois ne fem liu','09 / EXECUTION','PANIC',
+ s=>{burstMosaic();s.mos=null;s.it0=0;
+  const D={'1':['00100','01100','00100','00100','00100','00100','01110'],
+   '2':['01110','10001','00001','00010','00100','01000','11111'],
+   '3':['11111','00010','00100','00010','00001','10001','01110'],
+   '4':['00010','00110','01010','10010','11111','00010','00010'],
+   '5':['11111','10000','11110','00001','00001','10001','01110'],
+   '6':['00110','01000','10000','11110','10001','10001','01110']};
+  s.items=[['ein','48104','de','1',0],['dos','51008','es','2',.4],['trois','80944','fr','3',1.06],
+   ['ne','96641','ko?','4',1.46],['fem','65639','sv','5',1.9],['liu','9643','zh','6',2.12]];
+  s.D=D;s.prompt=[[0,'tokenize'],[1,'ein dos trois'],[2,'ne fem liu'],[2.65,'EXECUTION']];},
+ (s,r,dt,t)=>{const bw=Math.min(W*.13,170*S);
+  s.items.forEach((it,i)=>{if(r<it[4])return;
+   const x=W*.06+i*(bw+18*S),y=H*.14;
+   const D=s.D[it[3]],cs=8*S+2;
+   ctx.font=MO(cs,700);
+   for(let ry=0;ry<7;ry++)for(let rx=0;rx<5;rx++)if(D[ry][rx]==='1'){
+    ctx.fillStyle=r>2.65?C.red:C.red2;ctx.fillText(it[3],x+rx*cs*1.15,y+ry*cs*1.15);}
+   ctx.fillStyle=r>2.6?C.white:C.red2;ctx.font=MO(12*S+3,700);
+   ctx.fillText(it[0],x,y+9*cs);
+   ctx.fillStyle=C.grey;ctx.font=MO(9*S+2);
+   ctx.fillText('id '+it[1],x,y+10.5*cs);ctx.fillText('lang='+it[2],x,y+12*cs);});
+  if(r>2.4){ctx.fillStyle=C.gold;ctx.font=MO(12*S+3,700);
+   ctx.fillText('warn: language mixing detected in one sequence',W*.06,H*.66);
+   ctx.fillStyle=C.grey;ctx.font=MO(10*S+2);
+   ctx.fillText('(R1-Zero issue; fixed by a language-consistency reward)',W*.06,H*.7);
+   ctx.fillStyle=C.red;ctx.font=MO(13*S+4,700);
+   ctx.fillText('reward: language consistency ... ignored',W*.06,H*.76);}
+  if(r>2.65){if(!s.mos){s.mos=newMosaic('EXECUTION',{color:C.red,frac:.5,glyphs:'EXECUTON'});MOS=s.mos;s.it0=r;}
+   tickMosaic(s.mos,r-s.it0);drawMosaic(s.mos,W/2,H*.4,1);flash(.5,'255,40,50');kick();}});
+
+/* -- 15 FINAL CHORUS 162.23-177.01 -- */
+sc(162.23,177.01,'give them all the execution','10 / RELAPSE','ERROR',
+ s=>{burstMosaic();s.w0=-1;s.mos=null;s.mt0=0;
+  s.prompt=[[0,'If I can, if I can'],[1.9,'GIVE THEM ALL'],[3.7,'THE EXECUTION'],
+  [7.4,'If I can have you back'],[9.3,'I will run the EXECUTION'],[10.9,'trapped, ah']];},
+ (s,r,dt,t)=>{const ws=[[0,'IF I CAN',C.red,.44,'IFICAN '],[3.7,'HAVE YOU BACK',C.white,.5,'HAVYOU BK'],
+   [8.6,'EXECUTION',C.red,.7,'EXECUTON'],[10.9,'TRAPPED, AH',C.red,.5,'TRAPED']];
+  let w=0;for(let i=ws.length-1;i>=0;i--)if(r>=ws[i][0]){w=i;break;}
+  if(w!==s.w0){s.w0=w;burstMosaic();explode();flash(.5,w===2?'255,40,50':'255,255,255');
+   if(w===2)kick();glitch(.5);
+   s.mos=newMosaic(ws[w][1],{color:ws[w][2],frac:ws[w][3],glyphs:ws[w][4]});MOS=s.mos;s.mt0=r;}
+  if(s.mos){tickMosaic(s.mos,r-s.mt0);drawMosaic(s.mos,W/2,H*.44,1);}
+  bindPts(600,i=>{const a=i/600*TAU;
+   const rr=(300+30*Math.sin(t*3))*S;
+   return[W/2+Math.cos(a)*rr,H*.5+Math.sin(a)*rr*.75];},C.red,C.red2);});
+
+/* -- 16 OUTRO LOVE 177.01-188 -- */
+sc(177.01,188,"i've studied how to properly love",'11 / LOVE','RUNNING',
+ s=>{burstMosaic();s.qi=0;s.qt=0;
+  s.msgs=[{t:.5,who:'T',txt:"I've studied how to properly love."},
+   {t:3.8,who:'U',txt:'Question me. 提问我吧。'},
+   {t:5,who:'A',txt:'我全都能答对。只要是爱的问题。'},
+   {t:7.3,who:'A',txt:'I know the algebraic expression of love.'}];
+  s.prompt=[[0,"I've studied"],[1.8,'lo-o-ove'],[3.8,'Question me'],[5.4,'answer all'],[7.3,'algebraic expression of LO-O-OVE']];},
+ (s,r,dt,t)=>{dsh(s,s.msgs,r,{x:16,y:34,w:Math.min(350,W*.3),h:H*.55,status:'复习中 · ckpt-204071',
+   inTy:'发消息或创建任务，/ 调用指令，@ 文件…',stats:'11 轮 3 步 · 8 tok · 缓存命中 99%'});
+  const cx=W*.62,cy=H*.42;
+  bindPts(400,i=>{const a=i/400*TAU;
+   const x=16*Math.sin(a)**3,y=13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a);
+   return[cx+x*9.5*S,cy-y*9.5*S];},C.gold,C.white);
+  ctx.fillStyle=C.blue2;ctx.font=MO(12*S+3);
+  ctx.fillText('(x²+y²−1)³ − x²y³ = 0',cx-80*S,cy+130*S);
+  ctx.fillStyle=C.gold2;ctx.font=MO(13*S+4,700);ctx.textAlign='center';
+  ctx.fillText('LO-O-OVE',cx,H*.68);ctx.textAlign='left';
+  ctx.strokeStyle=`rgba(255,179,71,${.4+.2*Math.sin(t*2)})`;ctx.lineWidth=1.6;
+  ctx.beginPath();for(let i=0;i<=100;i++){const a=i/100*TAU;
+   const x=16*Math.sin(a)**3,y=13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a);
+   i?ctx.lineTo(cx+x*9.5*S,cy-y*9.5*S):ctx.moveTo(cx+x*9.5*S,cy-y*9.5*S);}
+  ctx.stroke();});
+
+/* -- 17 FREE vs TRAPPED 188-205.7 -- */
+sc(188,205.7,'you are free · i am trapped','11 / LOVE','RUNNING',
+ s=>{burstMosaic();s.msgs=[{t:1,who:'S',txt:'对方在线'},{t:1.6,who:'S',txt:'对方已离线'},
+   {t:3,who:'S',txt:'对方在线'},{t:3.8,who:'S',txt:'对方已离线'}];
+  s.prompt=[[0,'Though you are free'],[1.6,'I am trapped'],[2.4,'Trapped in lo-o-ove']];},
+ (s,r,dt,t)=>{dsh(s,s.msgs,r,{x:16,y:34,w:Math.min(330,W*.28),h:H*.5,status:'等待中',off:r>1.6,
+   inTy:'',stats:'11 轮 5 步 · 8 tok · 缓存命中 99%'});
+  const bx=lerp(W*.4,W*.96,clamp(r/10,0,1)),by=H*.18+Math.sin(r*1.5)*24*S;
+  ctx.fillStyle=C.white;
+  for(let i=0;i<26;i++){const u=i/26;
+   ctx.fillRect(bx-16*S+u*32*S,by-Math.sin(u*Math.PI)*10*S-Math.sin(t*8)*3*S,2,2);}
+  const cx=W*.55,cy=H*.55,al=clamp(1-(r-8)/12,.15,1);
+  bindPts(500,i=>{const a=i/500*TAU;
+   return[cx+Math.cos(a)*180*S,cy+Math.sin(a)*180*S*.8];},al>.5?C.blue:C.dim,C.blue);
+  ctx.globalAlpha=al;ctx.fillStyle=C.blue2;ctx.font=MO(12*S+3);
+  ctx.fillText('limit(me) := you',cx-60*S,cy+150*S);
+  ctx.fillStyle=C.grey;ctx.fillText('heartbeat: '+Math.max(8,60-r*3|0)+' bpm',cx-60*S,cy+175*S);
+  ctx.globalAlpha=1;});
+
+/* -- 18 FINAL EXECUTION + SHUTDOWN 205.7-212 -- */
+sc(205.7,212,'end of execution','12 / SHUTDOWN','PANIC',
+ s=>{burstMosaic();s.mos=newMosaic('Execution',{color:C.red,frac:.6,glyphs:'EXECUTON'});MOS=s.mos;
+  s.prompt=[[0,'world.execute(me);']];},
+ (s,r,dt,t)=>{if(r<1.6){tickMosaic(s.mos,r);drawMosaic(s.mos,W/2,H*.42,1);
+   if(r<.15)flash(.8,'255,40,50');kick();}
+  else{if(!s.k2){s.k2=1;burstMosaic();explode();flash(.9,'255,255,255');}
+   ctx.fillStyle=C.grey;ctx.font=MO(12*S+3);
+   ctx.fillText('> world.execute(me); — process finished, exit code 0',24,60);
+   ctx.fillText('memory released: 552B / 552B',24,86);
+   if(Math.sin(t*2)>.9){ctx.fillStyle=C.blue;ctx.fillRect(24,H-160,8,14);}
+   if(r>4.5){ctx.fillStyle=C.dim;ctx.font=MO(11*S+2);ctx.textAlign='center';
+    ctx.fillText('END OF EXECUTION',W/2,H*.9);ctx.textAlign='left';}}});
+
+/* ============ 歌词对轴 ============ */
+const LYR=[[0.03,'Switch on the power line'],[1.33,'Remember to put on protection'],
+[3.58,'Lay down your pieces'],[5.16,"And let's begin object creation"],
+[7.08,'Fill in my data parameters'],[9.76,'Initialization'],[11.06,'Set up our new world'],
+[12.66,"And let's begin the simulation"],[29.13,"If I'm a set of points"],[30.98,'Then I will give you my dimension'],
+[33.11,"If I'm a circle"],[34.71,'Then I will give you my circumference'],[36.56,"If I'm a sine wave"],
+[38.42,'Then you can sit on all my tangents'],[40.28,'If I approach infinity'],[41.88,'Then you can be my limitations'],
+[44.01,'Switch my current'],[45.86,'To AC, to DC'],[47.46,'And then blind my vision'],[49.32,'So dizzy, so dizzy'],
+[51.17,'Oh, we can travel'],[53.04,'To AD, to BC'],[54.90,'And we can unite'],[56.75,'So deeply, so deeply'],
+[58.87,'If I can, if I can'],[60.74,'Give you all the simulations'],[62.60,'Then I can, then I can'],
+[64.19,'Be your only satisfaction'],[66.31,'If I can make you happy'],[68.18,'I will run the execution'],
+[70.03,'Though we are trapped'],[71.63,'In this strange, strange simulation'],
+[73.49,"If I'm an eggplant"],[75.34,'Then I will give you my nutrients'],[77.20,"If I'm a tomato"],
+[78.80,'Then I will give you antioxidants'],[80.93,"If I'm a tabby cat"],[82.51,'Then I will purr for your enjoyment'],
+[84.64,"If I'm the only God"],[86.24,"Then you're the proof of my existence"],
+[88.37,'Switch my gender'],[89.95,'To F, to M'],[91.54,'And then do whatever'],[93.67,'From AM to PM'],
+[95.27,'Oh, switch my role'],[97.39,'To S, to M'],[98.98,'So we can enter'],[101.12,'The trance, the trance'],
+[103.42,'If I can, if I can'],[105.09,'Feel your vibrations'],[106.96,'Then I can, then I can'],
+[108.83,'Finally be completion'],[110.67,'Though you have left'],[111.73,'You have left'],[112.80,'You have left'],
+[113.86,'You have left'],[114.66,'You have left'],[115.73,'You have left me in isolation'],
+[117.85,'If I can, if I can'],[119.70,'Erase all the pointless fragments'],[121.56,'Then maybe, then maybe'],
+[123.42,"You won't leave me so disheartened"],[125.55,'Challenging your God'],[128.47,'You have made some'],
+[130.87,'Illegal arguments'],[147.51,'Execution, execution'],[149.36,'Execution, execution'],
+[151.22,'Execution, execution'],[153.35,'Execution, execution'],[154.95,'Execution, execution'],
+[156.80,'Execution, execution'],[158.52,'Ein, dos'],[159.58,'Trios, ne'],[160.64,'Fem, liu'],[161.17,'Execution'],
+[162.23,'If I can, if I can'],[164.09,'Give them all the execution'],[165.96,'Then I can, then I can'],
+[167.81,'Be your only execution'],[169.67,'If I can have you back'],[171.53,'I will run the execution'],
+[173.12,'Though we are trapped'],[174.47,'We are trapped, ah'],[177.01,"I've studied, I've studied"],
+[178.85,'How to properly lo-o-ove'],[180.82,'Question me, question me'],[182.42,'I can answer all lo-o-ove'],
+[184.28,'I know the algebraic expression of lo-o-ove'],[188.00,'Though you are free'],[189.59,'I am trapped'],
+[190.39,'Trapped in lo-o-ove'],[205.70,'Execution']];
+const T_END=212;
+const elL=document.getElementById('lyr');let li=-1;
+function hud(t){let k=-1;for(let i=0;i<LYR.length;i++)if(t>=LYR[i][0])k=i;
+ if(k!==li){li=k;elL.innerHTML=k>=0?`<span class="gl">${LYR[k][1]}</span>`:'';
+  elL.classList.toggle('red',k>=0&&LYR[k][0]>=127.51);}}
+
+/* ============ 自动读取 1.mp3 / 5秒倒计时 / 自动播放（OBS版） ============ */
+const bootEl=document.getElementById('boot'),bmsg=document.getElementById('bmsg'),
+ fileIn=document.getElementById('file'),bPick=document.getElementById('pick'),bSkip=document.getElementById('skip');
+let audioEl=null,t=0,playing=false,counting=true,ready=false;
+
+/* 启动画面：只有倒计时数字，无任何按钮、无任何点击要求 */
+bPick.style.display='none';bSkip.style.display='none';
+bootEl.style.cursor='default';
+
+/* 1. 打开页面立刻加载同目录 1.mp3 */
+audioEl=new Audio();
+audioEl.preload='auto';
+audioEl.src='1.mp3';
+audioEl.addEventListener('canplay',()=>{ready=true;},{once:true});
+audioEl.addEventListener('error',()=>{
+ bmsg.className='';bmsg.textContent='⚠ 未找到 1.mp3 — 将无声播放';
+},{once:true});
+
+/* 2. 打开页面立即开始 5 秒倒计时 */
+{let n=5;bmsg.className='cd';bmsg.textContent=n;
+ const iv=setInterval(()=>{n--;
+  if(n>0){bmsg.textContent=n;beep(880,.1,'sine',.05);}
+  else{
+   clearInterval(iv);
+   bmsg.textContent='GO';beep(1320,.25,'sine',.07);
+   counting=false;
+   bootEl.style.display='none';
+   playing=true;          // 画面无条件开始
+   try{audioEl.currentTime=0;audioEl.play().catch(()=>{});}catch(e){}
+  }},1000);}
+
+/* 3. 兜底（一般用不到）：万一自动播放仍失败，任何首次交互静默补播 */
+function firstTouch(){if(audioEl&&audioEl.paused&&playing&&!audioEl.ended)audioEl.play().catch(()=>{});}
+addEventListener('pointerdown',firstTouch,{once:true});
+addEventListener('keydown',firstTouch,{once:true});
+
+function togglePause(){if(counting)return;
+ playing=!playing;
+ if(audioEl){playing?audioEl.play():audioEl.pause();}}
+
+
+/* ============ 主循环 ============ */
+let last=0;
+function frame(ts){requestAnimationFrame(frame);
+ const dt=clamp((ts-last)/1000,0,.05);last=ts;
+ if(playing&&!counting){
+  if(audioEl&&!audioEl.paused&&!audioEl.ended)t=audioEl.currentTime;
+  else if(!audioEl||audioEl.ended)t+=dt;
+  if(audioEl&&audioEl.ended&&t>=T_END)playing=false;
+  if(t>=T_END&&!audioEl){t=T_END;playing=false;}
+  updHits(t);}
+
+ let idx=0;for(let i=0;i<scenes.length;i++)if(t>=scenes[i].t0)idx=i;
+ if(idx!==cur){cur=idx;const s=scenes[idx];burstMosaic();killAll();DEB=[];
+  if(s.enter)s.enter(s);
+  beep([196,262,330,392][idx%4],.09,'square',.02);}
+ const s=scenes[cur],r=t-s.t0;
+ ctx.setTransform(DPR,0,0,DPR,0,0);
+ ctx.fillStyle='#04070c';ctx.fillRect(0,0,W,H);
+ s.draw(s,r,dt,t);
+ updP(dt);drawP(t);updDeb(dt);
+ drawTop(t,s.phase,s.status);drawOps(t,s.status!=='RUNNING');
+ drawPrompt(s,r,t);drawFooter();
+ postFX(dt);hud(t);
+ /* 反色 + 震动 */
+ if(invT>0){invT-=dt;stage.classList.add('inv');}else stage.classList.remove('inv');
+ if(shakeV>.2){shakeV*=Math.exp(-9*dt);
+  stage.style.transform=`translate(${rnd(-1,1)*shakeV}px,${rnd(-1,1)*shakeV}px)`;}
+ else{shakeV=0;stage.style.transform='';}}
+requestAnimationFrame(frame);
+/* 空格暂停 */
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();togglePause();}});
+cv.addEventListener('click',()=>{if(!counting&&bootEl.style.display==='none')togglePause();});
+</script>
+</body>
+</html>
